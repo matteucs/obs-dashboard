@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Observation Analysis Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0e;
+    --bg2: #181817;
+    --bg3: #222220;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0ede8;
+    --text2: #9a9790;
+    --text3: #5a5855;
+    --accent: #c8b89a;
+    --accent2: #8fa88a;
+    --high: #e07a5f;
+    --med: #e8b86d;
+    --low: #7eb88a;
+    --info: #6fa3c8;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-mono: 'DM Mono', monospace;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* Layout */
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .main { flex: 1; min-width: 0; padding: 32px 36px; }
+
+  /* Sidebar */
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-label {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  .sidebar-section { padding: 16px 20px 8px; }
+  .sidebar-section-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+
+  .stat-mini { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .stat-mini:last-child { border-bottom: none; }
+  .stat-mini-label { color: var(--text2); font-size: 12px; }
+  .stat-mini-val { font-size: 13px; color: var(--text); font-weight: 500; }
+
+  .priority-bar { margin: 6px 0; }
+  .pb-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .pb-label { width: 48px; font-size: 11px; color: var(--text2); }
+  .pb-track { flex: 1; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .pb-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .pb-count { font-size: 11px; color: var(--text3); width: 20px; text-align: right; }
+
+  .cat-list { margin-top: 4px; }
+  .cat-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: color 0.15s; }
+  .cat-item:last-child { border-bottom: none; }
+  .cat-item:hover .cat-name { color: var(--accent); }
+  .cat-name { font-size: 12px; color: var(--text2); }
+  .cat-count { font-size: 11px; color: var(--text3); background: var(--bg3); padding: 1px 7px; border-radius: 10px; }
+
+  /* Header */
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+  .page-title { font-family: var(--font-display); font-size: 32px; font-weight: 300; color: var(--text); letter-spacing: -0.5px; line-height: 1.2; }
+  .page-title em { font-style: italic; color: var(--accent); }
+  .page-date { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn { padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border2); background: transparent; color: var(--text); font-family: var(--font-mono); font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .btn:hover { background: var(--bg3); border-color: var(--border2); }
+  .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-primary:hover { opacity: 0.88; background: var(--accent); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Metric cards */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+  .metric-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .metric-card.m-high::before { background: var(--high); }
+  .metric-card.m-med::before { background: var(--med); }
+  .metric-card.m-low::before { background: var(--low); }
+  .metric-card.m-total::before { background: var(--accent); }
+  .metric-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .metric-val { font-family: var(--font-display); font-size: 36px; font-weight: 300; color: var(--text); line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* Input area */
+  .input-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    margin-bottom: 24px;
+  }
+  .input-panel-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; }
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .field input, .field textarea {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--border2); }
+  .field textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+  .input-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* Records */
+  .records-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .records-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+  .search-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 7px 12px;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.15s;
+  }
+  .search-box:focus { border-color: var(--border2); }
+
+  .records-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .record-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    transition: border-color 0.2s;
+    animation: fadeIn 0.3s ease;
+  }
+  .record-card:hover { border-color: var(--border2); }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .record-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+  .record-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .record-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .record-date { font-size: 11px; color: var(--text3); }
+
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .badge {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .badge-high { background: rgba(224,122,95,0.15); color: var(--high); border: 1px solid rgba(224,122,95,0.25); }
+  .badge-medium { background: rgba(232,184,109,0.15); color: var(--med); border: 1px solid rgba(232,184,109,0.25); }
+  .badge-low { background: rgba(126,184,138,0.15); color: var(--low); border: 1px solid rgba(126,184,138,0.25); }
+  .badge-cat { background: rgba(200,184,154,0.1); color: var(--accent); border: 1px solid rgba(200,184,154,0.2); }
+  .badge-analyzing { background: rgba(111,163,200,0.1); color: var(--info); border: 1px solid rgba(111,163,200,0.2); }
+
+  .record-narrative { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
+  .record-summary {
+    background: var(--bg3);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+  .record-summary-label { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+
+  .record-contact { font-size: 11px; color: var(--text3); }
+  .record-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+  .record-score { font-size: 11px; color: var(--text3); }
+  .score-val { color: var(--accent); font-weight: 500; }
+
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--info);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text3);
+    font-size: 13px;
+    background: var(--bg2);
+    border: 1px dashed var(--border2);
+    border-radius: var(--radius-lg);
+  }
+  .empty-state-big { font-family: var(--font-display); font-size: 22px; font-weight: 300; color: var(--text3); margin-bottom: 6px; }
+
+  .export-bar { display: flex; gap: 8px; align-items: center; }
+
+  .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filter-pill {
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    background: transparent;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: all 0.15s;
+  }
+  .filter-pill:hover { border-color: var(--border2); color: var(--text); }
+  .filter-pill.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--text);
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: none; }
+
+  .badge-similar { background: rgba(143,168,138,0.15); color: var(--accent2); border: 1px solid rgba(143,168,138,0.3); }
+
+  .similar-panel {
+    background: var(--bg2);
+    border: 1px solid rgba(143,168,138,0.25);
+    border-left: 3px solid var(--accent2);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    display: none;
+  }
+  .similar-panel.visible { display: block; }
+  .similar-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .similar-panel-title { font-size: 11px; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.1em; }
+  .similar-close { background: none; border: none; color: var(--text3); font-size: 16px; cursor: pointer; line-height: 1; padding: 0; }
+  .similar-close:hover { color: var(--text); }
+  .cluster-group { margin-bottom: 14px; }
+  .cluster-group:last-child { margin-bottom: 0; }
+  .cluster-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .cluster-theme { font-size: 12px; font-weight: 500; color: var(--text); }
+  .cluster-count { font-size: 10px; color: var(--text3); background: var(--bg3); padding: 2px 8px; border-radius: 10px; }
+  .cluster-reason { font-size: 11px; color: var(--text3); margin-bottom: 8px; font-style: italic; }
+  .cluster-items { display: flex; flex-direction: column; gap: 6px; }
+  .cluster-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; background: var(--bg3); border-radius: var(--radius); cursor: pointer; transition: background 0.15s; }
+  .cluster-item:hover { background: rgba(143,168,138,0.1); }
+  .cluster-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); flex-shrink: 0; margin-top: 4px; }
+  .cluster-item-name { font-size: 12px; color: var(--text); font-weight: 500; }
+  .cluster-item-snippet { font-size: 11px; color: var(--text3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 500px; }
+  .cluster-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+  .record-card.highlighted { border-color: var(--accent2); background: rgba(143,168,138,0.05); }
+
+  .metric-card.m-similar::before { background: var(--accent2); }
+
+
+  /* Keyword search */
+  .search-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 16px; }
+  .search-row { display: flex; gap: 8px; align-items: center; }
+  .search-main-wrap { flex: 1; display: flex; align-items: center; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 10px; transition: border-color 0.15s; }
+  .search-main-wrap:focus-within { border-color: var(--border2); }
+  .search-icon { color: var(--text3); font-size: 14px; margin-right: 6px; flex-shrink: 0; }
+  .search-main { flex: 1; background: transparent; border: none; color: var(--text); font-family: var(--font-mono); font-size: 13px; padding: 9px 0; outline: none; }
+  .search-main::placeholder { color: var(--text3); }
+  .search-clear { background: none; border: none; color: var(--text3); font-size: 14px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .search-clear:hover { color: var(--text); }
+  .search-advanced { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .search-adv-grid { display: grid; grid-template-columns: auto auto auto; gap: 20px; flex-wrap: wrap; }
+  .search-field-group { display: flex; flex-direction: column; gap: 6px; }
+  .search-field-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+  .search-checkboxes { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+  .search-check { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); cursor: pointer; }
+  .search-check input { accent-color: var(--accent); cursor: pointer; }
+  .search-date { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; outline: none; width: 130px; }
+  .search-select { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; outline: none; cursor: pointer; }
+  .search-reset-btn { margin-top: 12px; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text3); font-family: var(--font-mono); font-size: 11px; padding: 5px 12px; cursor: pointer; transition: all 0.15s; }
+  .search-reset-btn:hover { color: var(--text); border-color: var(--border2); }
+  .search-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .search-tag { display: flex; align-items: center; gap: 5px; font-size: 11px; padding: 3px 10px; border-radius: 20px; background: rgba(200,184,154,0.12); border: 1px solid rgba(200,184,154,0.25); color: var(--accent); }
+  .search-tag-x { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer; padding: 0; line-height: 1; }
+  .highlight { background: rgba(200,184,154,0.25); border-radius: 2px; color: var(--accent); padding: 0 1px; }
+  @media (max-width: 700px) { .search-adv-grid { grid-template-columns: 1fr; } }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .input-grid { grid-template-columns: 1fr 1fr; }
+    .main { padding: 20px 16px; }
+  }
+  @media (max-width: 560px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .input-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-label">Observation<br/>Analysis</div>
+      <div class="logo-sub">AI Dashboard</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Overview</div>
+      <div class="stat-mini"><span class="stat-mini-label">Total submissions</span><span class="stat-mini-val" id="sb-total">0</span></div>
+      <div class="stat-mini"><span class="stat-mini-label">Analyzed</span><span class="stat-mini-val" id="sb-analyzed">0</span></div>
+      <div class="stat-mini"><span class="stat-mini-label">Avg. priority score</span><span class="stat-mini-val" id="sb-avg">—</span></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Priority breakdown</div>
+      <div class="priority-bar">
+        <div class="pb-row">
+          <span class="pb-label" style="color:var(--high)">High</span>
+          <div class="pb-track"><div class="pb-fill" id="pb-high" style="background:var(--high);width:0%"></div></div>
+          <span class="pb-count" id="pb-high-n">0</span>
+        </div>
+        <div class="pb-row">
+          <span class="pb-label" style="color:var(--med)">Med</span>
+          <div class="pb-track"><div class="pb-fill" id="pb-med" style="background:var(--med);width:0%"></div></div>
+          <span class="pb-count" id="pb-med-n">0</span>
+        </div>
+        <div class="pb-row">
+          <span class="pb-label" style="color:var(--low)">Low</span>
+          <div class="pb-track"><div class="pb-fill" id="pb-low" style="background:var(--low);width:0%"></div></div>
+          <span class="pb-count" id="pb-low-n">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Similar groups</div>
+      <div id="sb-similar-list">
+        <div style="font-size:12px;color:var(--text3);padding:6px 0;">Run similarity check to detect patterns</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Categories</div>
+      <div class="cat-list" id="cat-list">
+        <div style="font-size:12px;color:var(--text3);padding:6px 0;">No data yet</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Observation <em>Intelligence</em></div>
+        <div class="page-date" id="current-date"></div>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="analyzeAll()" id="analyze-all-btn">Analyze all</button>
+        <button class="btn" onclick="findSimilar()" id="similar-btn">Find similar</button>
+        <button class="btn" onclick="exportCSV()">Export CSV</button>
+        <button class="btn btn-primary" onclick="toggleInput()">+ New submission</button>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics" style="grid-template-columns: repeat(5,1fr)">
+      <div class="metric-card m-total">
+        <div class="metric-label">Total submissions</div>
+        <div class="metric-val" id="m-total">0</div>
+        <div class="metric-sub">all time</div>
+      </div>
+      <div class="metric-card m-high">
+        <div class="metric-label">High priority</div>
+        <div class="metric-val" id="m-high">0</div>
+        <div class="metric-sub">needs immediate attention</div>
+      </div>
+      <div class="metric-card m-med">
+        <div class="metric-label">Medium priority</div>
+        <div class="metric-val" id="m-med">0</div>
+        <div class="metric-sub">review soon</div>
+      </div>
+      <div class="metric-card m-low">
+        <div class="metric-label">Low priority</div>
+        <div class="metric-val" id="m-low">0</div>
+        <div class="metric-sub">monitor &amp; track</div>
+      </div>
+      <div class="metric-card m-similar" style="cursor:pointer" onclick="findSimilar()">
+        <div class="metric-label">Similar groups</div>
+        <div class="metric-val" id="m-similar">—</div>
+        <div class="metric-sub">click to detect</div>
+      </div>
+    </div>
+
+    <!-- Input panel -->
+    <div class="input-panel" id="input-panel" style="display:none">
+      <div class="input-panel-title">New observation submission</div>
+      <div class="input-grid">
+        <div class="field">
+          <label>Date of submission</label>
+          <input type="date" id="f-date" />
+        </div>
+        <div class="field">
+          <label>Submitter name</label>
+          <input type="text" id="f-name" placeholder="Full name" />
+        </div>
+        <div class="field">
+          <label>Contact</label>
+          <input type="text" id="f-contact" placeholder="Email or phone" />
+        </div>
+        <div class="field full">
+          <label>Observation narrative</label>
+          <textarea id="f-narrative" placeholder="Describe the observation in detail..."></textarea>
+        </div>
+      </div>
+      <div class="input-actions">
+        <button class="btn" onclick="toggleInput()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAndAnalyze()" id="submit-btn">Submit &amp; analyze</button>
+      </div>
+    </div>
+
+    <!-- Similar submissions panel -->
+    <div class="similar-panel" id="similar-panel">
+      <div class="similar-panel-header">
+        <span class="similar-panel-title">Similar submission groups detected</span>
+        <button class="similar-close" onclick="closeSimilarPanel()">&#x2715;</button>
+      </div>
+      <div id="similar-clusters"></div>
+    </div>
+
+    <!-- Filter pills -->
+    <div class="filter-pills" id="filter-pills">
+      <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-pill" onclick="setFilter('high', this)">High priority</button>
+      <button class="filter-pill" onclick="setFilter('medium', this)">Medium</button>
+      <button class="filter-pill" onclick="setFilter('low', this)">Low</button>
+      <button class="filter-pill" onclick="setFilter('similar', this)" id="pill-similar" style="display:none">Similar groups</button>
+      <button class="filter-pill" onclick="setFilter('unanalyzed', this)">Unanalyzed</button>
+    </div>
+
+    <!-- Keyword Search -->
+    <div class="search-panel" id="search-panel">
+      <div class="search-row">
+        <div class="search-main-wrap">
+          <span class="search-icon">&#9906;</span>
+          <input type="text" id="search-box" class="search-main" placeholder="Search by keyword, name, category, action..." oninput="onSearchInput()" onkeydown="onSearchKey(event)" autocomplete="off" />
+          <button class="search-clear" id="search-clear" onclick="clearSearch()" style="display:none">&#x2715;</button>
+        </div>
+        <button class="btn" onclick="toggleSearchAdvanced()" id="search-adv-btn">Filters</button>
+      </div>
+      <div class="search-advanced" id="search-advanced" style="display:none">
+        <div class="search-adv-grid">
+          <div class="search-field-group">
+            <label class="search-field-label">Search in</label>
+            <div class="search-checkboxes">
+              <label class="search-check"><input type="checkbox" id="sf-name" checked /> Name</label>
+              <label class="search-check"><input type="checkbox" id="sf-narrative" checked /> Narrative</label>
+              <label class="search-check"><input type="checkbox" id="sf-summary" checked /> AI summary</label>
+              <label class="search-check"><input type="checkbox" id="sf-category" checked /> Category</label>
+              <label class="search-check"><input type="checkbox" id="sf-action" checked /> Recommended action</label>
+              <label class="search-check"><input type="checkbox" id="sf-contact" /> Contact</label>
+            </div>
+          </div>
+          <div class="search-field-group">
+            <label class="search-field-label">Date range</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="date" id="sf-date-from" class="search-date" onchange="renderRecords()" />
+              <span style="color:var(--text3);font-size:11px;">to</span>
+              <input type="date" id="sf-date-to" class="search-date" onchange="renderRecords()" />
+            </div>
+          </div>
+          <div class="search-field-group">
+            <label class="search-field-label">Sort by</label>
+            <select id="sf-sort" class="search-select" onchange="renderRecords()">
+              <option value="date-desc">Newest first</option>
+              <option value="date-asc">Oldest first</option>
+              <option value="priority-desc">Highest priority</option>
+              <option value="priority-asc">Lowest priority</option>
+              <option value="name-asc">Name A-Z</option>
+            </select>
+          </div>
+        </div>
+        <button class="search-reset-btn" onclick="resetSearch()">Reset all filters</button>
+      </div>
+      <div class="search-tags" id="search-tags"></div>
+    </div>
+
+    <!-- Records -->
+    <div class="records-header">
+      <div class="records-title">Submissions <span id="search-result-count" style="color:var(--text3);font-weight:400;margin-left:6px;"></span></div>
+    </div>
+
+    <div class="records-list" id="records-list">
+      <div class="empty-state">
+        <div class="empty-state-big">No submissions yet</div>
+        <div>Add a new submission above to get started</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let submissions = [];
+  let activeFilter = 'all';
+  let similarGroups = [];
+  let highlightedIds = new Set();
+
+  // Sample data to demo
+  const SAMPLES = [
+    {
+      id: Date.now() - 300000,
+      date: '2025-03-18',
+      name: 'Sarah Mitchell',
+      contact: 'smitchell@example.com',
+      narrative: 'Observed unusual activity near the north warehouse entrance at approximately 11:45 PM. Three individuals were seen loading boxes into an unmarked white van. They did not appear to be on-shift staff and were not wearing company uniforms. The van left quickly without using the main gate.',
+      analysis: null
+    },
+    {
+      id: Date.now() - 200000,
+      date: '2025-03-19',
+      name: 'James Okafor',
+      contact: 'jokafor@example.com',
+      narrative: 'The drainage pipe on the east side of Building C has been leaking for about two weeks. Water pooling on the footpath creates a slip hazard, especially in the mornings. Maintenance has been notified once but no action taken yet.',
+      analysis: null
+    },
+    {
+      id: Date.now() - 100000,
+      date: '2025-03-20',
+      name: 'Priya Nair',
+      contact: '555-0134',
+      narrative: 'During today\'s shift briefing, a team member made several comments that others found offensive and exclusionary. This is the second incident involving the same individual. HR was not present. Two colleagues who witnessed it said they felt uncomfortable raising it officially.',
+      analysis: null
+    }
+  ];
+
+  function init() {
+    document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    submissions = JSON.parse(localStorage.getItem('obs_submissions') || 'null') || SAMPLES;
+    // Restore similar state
+    highlightedIds = new Set(submissions.filter(s => s.similarGroupIndex != null).map(s => s.id));
+    const stored = localStorage.getItem('obs_similar');
+    if (stored) {
+      similarGroups = JSON.parse(stored);
+      if (similarGroups.length) {
+        document.getElementById('m-similar').textContent = similarGroups.length;
+        document.getElementById('pill-similar').style.display = '';
+        renderSimilarPanel();
+      }
+    }
+    renderAll();
+  }
+
+  function save() {
+    localStorage.setItem('obs_submissions', JSON.stringify(submissions));
+    localStorage.setItem('obs_similar', JSON.stringify(similarGroups));
+  }
+
+  function toggleInput() {
+    const p = document.getElementById('input-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function setFilter(f, el) {
+    activeFilter = f;
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    renderRecords();
+  }
+
+  function showToast(msg, duration = 2500) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  // ✅ Replace this with your Vercel proxy URL after deploying
+  const PROXY_URL = '/api/proxy';
+
+  async function analyzeSubmission(sub) {
+    const prompt = `You are an expert analyst reviewing an observation report. Analyze the following submission and respond ONLY with a valid JSON object (no markdown, no explanation).
+
+Submission:
+- Date: ${sub.date}
+- Submitter: ${sub.name}
+- Narrative: ${sub.narrative}
+
+Return JSON with exactly these fields:
+{
+  "priority": "High" | "Medium" | "Low",
+  "priority_score": <integer 1-10, 10 being most urgent>,
+  "category": <one short category label, e.g. "Security", "Safety", "HR/Conduct", "Maintenance", "Environmental", "Operations", "Other">,
+  "summary": <1-2 sentence plain-language summary of what happened and why it matters>,
+  "recommended_action": <one concrete recommended next step>,
+  "sentiment": "Urgent" | "Concerned" | "Informational" | "Neutral"
+}`;
+
+    const response = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) throw new Error('API error ' + response.status);
+    const data = await response.json();
+    const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+    return JSON.parse(text);
+  }
+
+  async function submitAndAnalyze() {
+    const date = document.getElementById('f-date').value;
+    const name = document.getElementById('f-name').value.trim();
+    const narrative = document.getElementById('f-narrative').value.trim();
+    const contact = document.getElementById('f-contact').value.trim();
+
+    if (!date || !name || !narrative) { showToast('Please fill in date, name, and narrative.'); return; }
+
+    const sub = { id: Date.now(), date, name, contact, narrative, analysis: null, analyzing: true };
+    submissions.unshift(sub);
+    renderAll();
+    toggleInput();
+
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-narrative').value = '';
+    document.getElementById('f-contact').value = '';
+
+    try {
+      sub.analysis = await analyzeSubmission(sub);
+    } catch(e) {
+      sub.analysis = null;
+      showToast('Analysis failed — you can retry later.');
+    }
+    sub.analyzing = false;
+    save();
+    renderAll();
+    showToast('Submission analyzed.');
+  }
+
+  async function analyzeAll() {
+    const unanalyzed = submissions.filter(s => !s.analysis && !s.analyzing);
+    if (!unanalyzed.length) { showToast('All submissions are already analyzed.'); return; }
+
+    const btn = document.getElementById('analyze-all-btn');
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+
+    for (const sub of unanalyzed) {
+      sub.analyzing = true;
+      renderAll();
+      try {
+        sub.analysis = await analyzeSubmission(sub);
+      } catch(e) {
+        sub.analysis = null;
+      }
+      sub.analyzing = false;
+      save();
+      renderAll();
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Analyze all';
+    showToast('All submissions analyzed.');
+  }
+
+  async function findSimilar() {
+    if (submissions.length < 2) { showToast('Need at least 2 submissions to compare.'); return; }
+    const btn = document.getElementById('similar-btn');
+    btn.disabled = true;
+    btn.textContent = 'Detecting...';
+
+    const items = submissions.map(s => ({
+      id: s.id,
+      name: s.name,
+      date: s.date,
+      narrative: s.narrative,
+      category: s.analysis?.category || 'Unknown',
+      summary: s.analysis?.summary || ''
+    }));
+
+    const prompt = `You are an expert analyst. Review the following observation submissions and identify groups of submissions that are meaningfully similar — same type of incident, same location, same pattern of behavior, or the same underlying issue reported by different people.
+
+Submissions:
+${items.map((s, i) => `[${i}] ID:${s.id} | ${s.date} | ${s.name} | Category: ${s.category}\nNarrative: ${s.narrative}`).join('\n\n')}
+
+Respond ONLY with a valid JSON array (no markdown, no explanation). Each element represents a group of similar submissions:
+[
+  {
+    "theme": <short label for what links them, e.g. "Warehouse security breach", "Building C drainage issue">,
+    "reason": <1 sentence explaining why these are related>,
+    "ids": [<array of submission IDs that belong to this group>]
+  }
+]
+
+Only include groups with 2 or more submissions. If no meaningful similarities exist, return an empty array [].`;
+
+    try {
+      const response = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      if (!response.ok) throw new Error('API error');
+      const data = await response.json();
+      const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+      similarGroups = JSON.parse(text);
+    } catch(e) {
+      showToast('Similarity detection failed. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Find similar';
+      return;
+    }
+
+    highlightedIds = new Set(similarGroups.flatMap(g => g.ids));
+
+    // Tag each submission with its group index
+    submissions.forEach(s => { s.similarGroupIndex = null; });
+    similarGroups.forEach((g, gi) => {
+      g.ids.forEach(id => {
+        const s = submissions.find(x => x.id === id);
+        if (s) s.similarGroupIndex = gi;
+      });
+    });
+    save();
+
+    const count = similarGroups.length;
+    document.getElementById('m-similar').textContent = count;
+    document.getElementById('m-similar').closest('.metric-card').querySelector('.metric-sub').textContent = count ? `${count} pattern${count>1?'s':''} found` : 'no patterns found';
+
+    document.getElementById('pill-similar').style.display = count ? '' : 'none';
+
+    renderSimilarPanel();
+    renderAll();
+
+    btn.disabled = false;
+    btn.textContent = 'Find similar';
+    if (count) showToast(`Found ${count} similar group${count>1?'s':''}.`);
+    else showToast('No similar submissions detected.');
+  }
+
+  function renderSimilarPanel() {
+    const panel = document.getElementById('similar-panel');
+    if (!similarGroups.length) { panel.classList.remove('visible'); return; }
+    panel.classList.add('visible');
+
+    const colors = ['var(--accent2)', 'var(--info)', 'var(--med)', 'var(--high)', 'var(--accent)'];
+    document.getElementById('similar-clusters').innerHTML = similarGroups.map((g, gi) => {
+      const color = colors[gi % colors.length];
+      const members = g.ids.map(id => submissions.find(s => s.id === id)).filter(Boolean);
+      return `<div class="cluster-group">
+        ${gi > 0 ? '<hr class="cluster-divider" />' : ''}
+        <div class="cluster-header">
+          <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
+          <span class="cluster-theme">${g.theme}</span>
+          <span class="cluster-count">${members.length} submissions</span>
+        </div>
+        <div class="cluster-reason">${g.reason}</div>
+        <div class="cluster-items">
+          ${members.map(s => `
+            <div class="cluster-item" onclick="scrollToRecord(${s.id})">
+              <div class="cluster-dot" style="background:${color}"></div>
+              <div style="min-width:0">
+                <div class="cluster-item-name">${s.name} &mdash; <span style="font-weight:400;color:var(--text3)">${s.date}</span></div>
+                <div class="cluster-item-snippet">${s.narrative}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+
+    // Update sidebar
+    const sbList = document.getElementById('sb-similar-list');
+    sbList.innerHTML = similarGroups.length ? similarGroups.map((g, gi) => {
+      const color = colors[gi % colors.length];
+      return `<div class="cat-item" onclick="scrollToGroup(${gi})" style="gap:8px">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0">
+          <div style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></div>
+          <span class="cat-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.theme}</span>
+        </div>
+        <span class="cat-count">${g.ids.length}</span>
+      </div>`;
+    }).join('') : '<div style="font-size:12px;color:var(--text3);padding:6px 0;">No groups found</div>';
+  }
+
+  function closeSimilarPanel() {
+    document.getElementById('similar-panel').classList.remove('visible');
+  }
+
+  function scrollToRecord(id) {
+    const el = document.getElementById('rec-' + id);
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlighted'); setTimeout(() => el.classList.remove('highlighted'), 1800); }
+    else {
+      setFilter('all', document.querySelector('.filter-pill'));
+      setTimeout(() => {
+        const el2 = document.getElementById('rec-' + id);
+        if (el2) { el2.scrollIntoView({ behavior: 'smooth', block: 'center' }); el2.classList.add('highlighted'); setTimeout(() => el2.classList.remove('highlighted'), 1800); }
+      }, 200);
+    }
+  }
+
+  function scrollToGroup(gi) {
+    document.getElementById('similar-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderAll() {
+    updateMetrics();
+    updateSidebar();
+    renderRecords();
+  }
+
+  function updateMetrics() {
+    const analyzed = submissions.filter(s => s.analysis);
+    const high = analyzed.filter(s => s.analysis.priority === 'High').length;
+    const med = analyzed.filter(s => s.analysis.priority === 'Medium').length;
+    const low = analyzed.filter(s => s.analysis.priority === 'Low').length;
+
+    document.getElementById('m-total').textContent = submissions.length;
+    document.getElementById('m-high').textContent = high;
+    document.getElementById('m-med').textContent = med;
+    document.getElementById('m-low').textContent = low;
+  }
+
+  function updateSidebar() {
+    const analyzed = submissions.filter(s => s.analysis);
+    const total = submissions.length;
+    const high = analyzed.filter(s => s.analysis.priority === 'High').length;
+    const med = analyzed.filter(s => s.analysis.priority === 'Medium').length;
+    const low = analyzed.filter(s => s.analysis.priority === 'Low').length;
+    const scores = analyzed.map(s => s.analysis.priority_score);
+    const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '—';
+
+    document.getElementById('sb-total').textContent = total;
+    document.getElementById('sb-analyzed').textContent = analyzed.length;
+    document.getElementById('sb-avg').textContent = avg;
+
+    const pct = n => analyzed.length ? Math.round(n / analyzed.length * 100) + '%' : '0%';
+    document.getElementById('pb-high').style.width = pct(high);
+    document.getElementById('pb-med').style.width = pct(med);
+    document.getElementById('pb-low').style.width = pct(low);
+    document.getElementById('pb-high-n').textContent = high;
+    document.getElementById('pb-med-n').textContent = med;
+    document.getElementById('pb-low-n').textContent = low;
+
+    // Categories
+    const cats = {};
+    analyzed.forEach(s => { const c = s.analysis.category; cats[c] = (cats[c]||0)+1; });
+    const sorted = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+    const catList = document.getElementById('cat-list');
+    if (!sorted.length) {
+      catList.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:6px 0;">No data yet</div>';
+    } else {
+      catList.innerHTML = sorted.map(([cat, n]) =>
+        `<div class="cat-item" onclick="filterByCategory('${cat}')">
+          <span class="cat-name">${cat}</span>
+          <span class="cat-count">${n}</span>
+        </div>`
+      ).join('');
+    }
+  }
+
+  function filterByCategory(cat) {
+    activeFilter = 'cat:' + cat;
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    renderRecords();
+  }
+
+
+  function onSearchInput() {
+    const val = document.getElementById('search-box').value;
+    document.getElementById('search-clear').style.display = val ? 'block' : 'none';
+    renderRecords();
+  }
+
+  function onSearchKey(e) {
+    if (e.key === 'Escape') clearSearch();
+  }
+
+  function clearSearch() {
+    document.getElementById('search-box').value = '';
+    document.getElementById('search-clear').style.display = 'none';
+    renderRecords();
+  }
+
+  function toggleSearchAdvanced() {
+    const adv = document.getElementById('search-advanced');
+    const btn = document.getElementById('search-adv-btn');
+    const visible = adv.style.display !== 'none';
+    adv.style.display = visible ? 'none' : 'block';
+    btn.textContent = visible ? 'Filters' : 'Hide filters';
+  }
+
+  function resetSearch() {
+    document.getElementById('search-box').value = '';
+    document.getElementById('search-clear').style.display = 'none';
+    document.getElementById('sf-date-from').value = '';
+    document.getElementById('sf-date-to').value = '';
+    document.getElementById('sf-sort').value = 'date-desc';
+    ['sf-name','sf-narrative','sf-summary','sf-category','sf-action'].forEach(id => {
+      document.getElementById(id).checked = true;
+    });
+    document.getElementById('sf-contact').checked = false;
+    renderRecords();
+  }
+
+  function highlight(text, query) {
+    if (!query) return text;
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(new RegExp('(' + escaped + ')', 'gi'), '<span class="highlight">$1</span>');
+  }
+
+  function getActiveKeywords() {
+    return document.getElementById('search-box').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  }
+
+  function matchesKeywords(sub, keywords) {
+    if (!keywords.length) return true;
+    const fields = [];
+    if (document.getElementById('sf-name').checked) fields.push((sub.name||'').toLowerCase());
+    if (document.getElementById('sf-narrative').checked) fields.push((sub.narrative||'').toLowerCase());
+    if (document.getElementById('sf-summary').checked) fields.push((sub.analysis?.summary||'').toLowerCase());
+    if (document.getElementById('sf-category').checked) fields.push((sub.analysis?.category||'').toLowerCase());
+    if (document.getElementById('sf-action').checked) fields.push((sub.analysis?.recommended_action||'').toLowerCase());
+    if (document.getElementById('sf-contact').checked) fields.push((sub.contact||'').toLowerCase());
+    const combined = fields.join(' ');
+    return keywords.every(kw => combined.includes(kw));
+  }
+
+  function updateSearchTags(keywords) {
+    const container = document.getElementById('search-tags');
+    const dateFrom = document.getElementById('sf-date-from').value;
+    const dateTo = document.getElementById('sf-date-to').value;
+    const tags = [];
+    keywords.forEach(kw => tags.push({ label: kw, type: 'kw' }));
+    if (dateFrom) tags.push({ label: 'From: ' + dateFrom, type: 'date-from' });
+    if (dateTo) tags.push({ label: 'To: ' + dateTo, type: 'date-to' });
+    container.innerHTML = tags.map(t =>
+      `<span class="search-tag">${t.label}<button class="search-tag-x" onclick="removeTag('${t.type}','${t.label}')">&#x2715;</button></span>`
+    ).join('');
+  }
+
+  function removeTag(type, label) {
+    if (type === 'kw') {
+      const box = document.getElementById('search-box');
+      box.value = box.value.replace(new RegExp('\\b' + label + '\\b', 'i'), '').trim();
+      document.getElementById('search-clear').style.display = box.value ? 'block' : 'none';
+    } else if (type === 'date-from') document.getElementById('sf-date-from').value = '';
+    else if (type === 'date-to') document.getElementById('sf-date-to').value = '';
+    renderRecords();
+  }
+
+  function renderRecords() {
+    const keywords = getActiveKeywords();
+    const dateFrom = document.getElementById('sf-date-from').value;
+    const dateTo = document.getElementById('sf-date-to').value;
+    const sortBy = document.getElementById('sf-sort').value;
+    const searchQuery = document.getElementById('search-box').value.trim();
+
+    updateSearchTags(keywords);
+
+    let list = [...submissions];
+
+    // Priority / category filter
+    if (activeFilter === 'high') list = list.filter(s => s.analysis?.priority === 'High');
+    else if (activeFilter === 'medium') list = list.filter(s => s.analysis?.priority === 'Medium');
+    else if (activeFilter === 'low') list = list.filter(s => s.analysis?.priority === 'Low');
+    else if (activeFilter === 'unanalyzed') list = list.filter(s => !s.analysis && !s.analyzing);
+    else if (activeFilter === 'similar') list = list.filter(s => highlightedIds.has(s.id));
+    else if (activeFilter.startsWith('cat:')) {
+      const cat = activeFilter.replace('cat:', '');
+      list = list.filter(s => s.analysis?.category === cat);
+    }
+
+    // Keyword filter
+    if (keywords.length) list = list.filter(s => matchesKeywords(s, keywords));
+
+    // Date range filter
+    if (dateFrom) list = list.filter(s => s.date >= dateFrom);
+    if (dateTo) list = list.filter(s => s.date <= dateTo);
+
+    // Sort
+    const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+    if (sortBy === 'date-desc') list.sort((a, b) => b.date.localeCompare(a.date));
+    else if (sortBy === 'date-asc') list.sort((a, b) => a.date.localeCompare(b.date));
+    else if (sortBy === 'priority-desc') list.sort((a, b) => (priorityOrder[b.analysis?.priority]||0) - (priorityOrder[a.analysis?.priority]||0));
+    else if (sortBy === 'priority-asc') list.sort((a, b) => (priorityOrder[a.analysis?.priority]||0) - (priorityOrder[b.analysis?.priority]||0));
+    else if (sortBy === 'name-asc') list.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Result count
+    const countEl = document.getElementById('search-result-count');
+    const hasFilters = keywords.length || dateFrom || dateTo || activeFilter !== 'all';
+    countEl.textContent = hasFilters ? `(${list.length} of ${submissions.length})` : `(${submissions.length})`;
+
+    const container = document.getElementById('records-list');
+    if (!list.length) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-state-big">No results</div><div>Try adjusting your keyword or filters</div></div>`;
+      return;
+    }
+
+    const groupColors = ['var(--accent2)', 'var(--info)', 'var(--med)', 'var(--high)', 'var(--accent)'];
+    const hlQuery = searchQuery;
+
+    container.innerHTML = list.map(sub => {
+      const a = sub.analysis;
+      const priorityBadge = a ? `<span class="badge badge-${a.priority.toLowerCase()}">${a.priority}</span>` : '';
+      const catBadge = a ? `<span class="badge badge-cat">${a.category}</span>` : '';
+      const analyzingBadge = sub.analyzing ? `<span class="badge badge-analyzing"><span class="spinner"></span>Analyzing</span>` : '';
+
+      const gi = sub.similarGroupIndex;
+      const groupColor = gi != null ? groupColors[gi % groupColors.length] : null;
+      const similarBadge = gi != null ? `<span class="badge badge-similar" style="border-color:${groupColor};color:${groupColor}">Similar group ${gi+1}</span>` : '';
+      const groupBorder = gi != null ? `border-left: 3px solid ${groupColor};` : '';
+
+      const hlName = highlight(sub.name, hlQuery);
+      const hlNarrative = highlight(sub.narrative, hlQuery);
+      const hlSummary = a ? highlight(a.summary, hlQuery) : '';
+      const hlAction = a ? highlight(a.recommended_action, hlQuery) : '';
+
+      const summaryBlock = a ? `
+        <div class="record-summary">
+          <div class="record-summary-label">AI Summary</div>
+          ${hlSummary}
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">
+          <span style="color:var(--accent2)">Recommended action:</span> ${hlAction}
+        </div>` : '';
+
+      const score = a ? `<span class="record-score">Priority score: <span class="score-val">${a.priority_score}/10</span></span>` : '<span></span>';
+      const sentiment = a ? `<span class="badge badge-cat" style="font-size:10px">${a.sentiment}</span>` : '';
+
+      return `<div class="record-card" id="rec-${sub.id}" style="${groupBorder}">
+        <div class="record-top">
+          <div class="record-meta">
+            <span class="record-name">${hlName}</span>
+            <span class="record-date">${sub.date}</span>
+          </div>
+          <div class="badges">${analyzingBadge}${priorityBadge}${catBadge}${sentiment}${similarBadge}</div>
+        </div>
+        <div class="record-narrative">${hlNarrative}</div>
+        ${summaryBlock}
+        <div class="record-footer">
+          ${score}
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${sub.contact ? `<span class="record-contact">${sub.contact}</span>` : ''}
+            ${!a && !sub.analyzing ? `<button class="btn" style="padding:4px 10px;font-size:11px;" onclick="reanalyze(${sub.id})">Analyze</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function reanalyze(id) {
+    const sub = submissions.find(s => s.id === id);
+    if (!sub) return;
+    sub.analyzing = true;
+    renderAll();
+    try {
+      sub.analysis = await analyzeSubmission(sub);
+    } catch(e) {
+      showToast('Analysis failed.');
+    }
+    sub.analyzing = false;
+    save();
+    renderAll();
+  }
+
+  function exportCSV() {
+    if (!submissions.length) { showToast('No data to export.'); return; }
+    const headers = ['Date', 'Name', 'Contact', 'Narrative', 'Priority', 'Score', 'Category', 'Summary', 'Recommended Action', 'Sentiment'];
+    const rows = submissions.map(s => {
+      const a = s.analysis || {};
+      return [
+        s.date, s.name, s.contact,
+        '"' + (s.narrative||'').replace(/"/g,'""') + '"',
+        a.priority||'', a.priority_score||'', a.category||'',
+        '"' + (a.summary||'').replace(/"/g,'""') + '"',
+        '"' + (a.recommended_action||'').replace(/"/g,'""') + '"',
+        a.sentiment||''
+      ];
+    });
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'observation_analysis_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    showToast('CSV exported.');
+  }
+
+  init();
+</script>
+</body>
+</html>
