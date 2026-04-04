@@ -3,26 +3,26 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Observation Analysis Dashboard</title>
+<title>China Bullpen Analysis Tool</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0f0f0e;
-    --bg2: #181817;
-    --bg3: #222220;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.14);
-    --text: #f0ede8;
-    --text2: #9a9790;
-    --text3: #5a5855;
-    --accent: #c8b89a;
-    --accent2: #8fa88a;
-    --high: #e07a5f;
-    --med: #e8b86d;
-    --low: #7eb88a;
-    --info: #6fa3c8;
+    --bg: #f4f2ee;
+    --bg2: #ffffff;
+    --bg3: #eceae5;
+    --border: rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.16);
+    --text: #1a1917;
+    --text2: #4a4845;
+    --text3: #8a8784;
+    --accent: #6b4f2a;
+    --accent2: #2d6a4f;
+    --high: #c0392b;
+    --med: #c47a1a;
+    --low: #27714a;
+    --info: #1a5f8a;
     --font-display: 'Fraunces', Georgia, serif;
     --font-mono: 'DM Mono', monospace;
     --radius: 10px;
@@ -43,7 +43,7 @@
   .sidebar {
     width: 260px;
     flex-shrink: 0;
-    background: var(--bg2);
+    background: #f9f7f3;
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -100,7 +100,7 @@
   .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .btn { padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border2); background: transparent; color: var(--text); font-family: var(--font-mono); font-size: 12px; cursor: pointer; transition: all 0.15s; }
   .btn:hover { background: var(--bg3); border-color: var(--border2); }
-  .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
   .btn-primary:hover { opacity: 0.88; background: var(--accent); }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -202,11 +202,11 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
-  .badge-high { background: rgba(224,122,95,0.15); color: var(--high); border: 1px solid rgba(224,122,95,0.25); }
-  .badge-medium { background: rgba(232,184,109,0.15); color: var(--med); border: 1px solid rgba(232,184,109,0.25); }
-  .badge-low { background: rgba(126,184,138,0.15); color: var(--low); border: 1px solid rgba(126,184,138,0.25); }
-  .badge-cat { background: rgba(200,184,154,0.1); color: var(--accent); border: 1px solid rgba(200,184,154,0.2); }
-  .badge-analyzing { background: rgba(111,163,200,0.1); color: var(--info); border: 1px solid rgba(111,163,200,0.2); }
+  .badge-high { background: rgba(192,57,43,0.1); color: var(--high); border: 1px solid rgba(192,57,43,0.25); }
+  .badge-medium { background: rgba(196,122,26,0.1); color: var(--med); border: 1px solid rgba(196,122,26,0.25); }
+  .badge-low { background: rgba(39,113,74,0.1); color: var(--low); border: 1px solid rgba(39,113,74,0.25); }
+  .badge-cat { background: rgba(107,79,42,0.08); color: var(--accent); border: 1px solid rgba(107,79,42,0.2); }
+  .badge-analyzing { background: rgba(26,95,138,0.08); color: var(--info); border: 1px solid rgba(26,95,138,0.2); }
 
   .record-narrative { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
   .record-summary {
@@ -229,7 +229,7 @@
   .spinner {
     display: inline-block;
     width: 12px; height: 12px;
-    border: 2px solid var(--border2);
+    border: 2px solid rgba(26,95,138,0.2);
     border-top-color: var(--info);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
@@ -244,7 +244,7 @@
     color: var(--text3);
     font-size: 13px;
     background: var(--bg2);
-    border: 1px dashed var(--border2);
+    border: 1px dashed rgba(0,0,0,0.15);
     border-radius: var(--radius-lg);
   }
   .empty-state-big { font-family: var(--font-display); font-size: 22px; font-weight: 300; color: var(--text3); margin-bottom: 6px; }
@@ -283,11 +283,11 @@
   }
   .toast.show { opacity: 1; transform: none; }
 
-  .badge-similar { background: rgba(143,168,138,0.15); color: var(--accent2); border: 1px solid rgba(143,168,138,0.3); }
+  .badge-similar { background: rgba(45,106,79,0.1); color: var(--accent2); border: 1px solid rgba(45,106,79,0.3); }
 
   .similar-panel {
     background: var(--bg2);
-    border: 1px solid rgba(143,168,138,0.25);
+    border: 1px solid rgba(45,106,79,0.2);
     border-left: 3px solid var(--accent2);
     border-radius: var(--radius-lg);
     padding: 14px 18px;
@@ -340,9 +340,9 @@
   .search-reset-btn { margin-top: 12px; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text3); font-family: var(--font-mono); font-size: 11px; padding: 5px 12px; cursor: pointer; transition: all 0.15s; }
   .search-reset-btn:hover { color: var(--text); border-color: var(--border2); }
   .search-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .search-tag { display: flex; align-items: center; gap: 5px; font-size: 11px; padding: 3px 10px; border-radius: 20px; background: rgba(200,184,154,0.12); border: 1px solid rgba(200,184,154,0.25); color: var(--accent); }
+  .search-tag { display: flex; align-items: center; gap: 5px; font-size: 11px; padding: 3px 10px; border-radius: 20px; background: rgba(107,79,42,0.08); border: 1px solid rgba(107,79,42,0.2); color: var(--accent); }
   .search-tag-x { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer; padding: 0; line-height: 1; }
-  .highlight { background: rgba(200,184,154,0.25); border-radius: 2px; color: var(--accent); padding: 0 1px; }
+  .highlight { background: rgba(107,79,42,0.15); border-radius: 2px; color: var(--accent); padding: 0 1px; }
   @media (max-width: 700px) { .search-adv-grid { grid-template-columns: 1fr; } }
 
 
@@ -365,7 +365,7 @@
   .folder-action-btn:hover { color: var(--text); background: var(--bg2); }
 
   /* Modal */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: flex; align-items: center; justify-content: center; }
   .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 24px; width: 340px; max-width: 90vw; }
   .modal-title { font-family: var(--font-display); font-size: 18px; font-weight: 300; margin-bottom: 16px; color: var(--text); }
   .modal-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-mono); font-size: 13px; padding: 9px 12px; outline: none; margin-bottom: 14px; }
@@ -379,7 +379,7 @@
   .record-action-btn { background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text3); font-family: var(--font-mono); font-size: 11px; padding: 3px 9px; cursor: pointer; transition: all 0.15s; }
   .record-action-btn:hover { color: var(--text); border-color: var(--border2); background: var(--bg3); }
   .record-action-btn.danger:hover { color: var(--high); border-color: var(--high); background: rgba(224,122,95,0.08); }
-  .folder-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(111,163,200,0.12); color: var(--info); border: 1px solid rgba(111,163,200,0.2); }
+  .folder-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(26,95,138,0.08); color: var(--info); border: 1px solid rgba(26,95,138,0.2); }
 
   @media (max-width: 900px) {
     .sidebar { display: none; }
@@ -399,7 +399,7 @@
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-label">Observation<br/>Analysis</div>
+      <div class="logo-label">China Bullpen<br/>Analysis Tool</div>
       <div class="logo-sub">AI Dashboard</div>
     </div>
 
@@ -463,7 +463,7 @@
   <main class="main">
     <div class="page-header">
       <div>
-        <div class="page-title">Observation <em>Intelligence</em></div>
+        <div class="page-title">China Bullpen <em>Analysis Tool</em></div>
         <div class="page-date" id="current-date"></div>
       </div>
       <div class="header-actions">
