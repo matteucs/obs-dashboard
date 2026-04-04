@@ -1424,6 +1424,7 @@ Respond ONLY with a valid JSON object (no markdown, no explanation):
         "headline": "Short punchy headline",
         "summary": "1-2 sentence summary of what happened and why it matters.",
         "source": "Source name e.g. Reuters",
+        "url": "https://full-url-to-the-article.com/article",
         "significance": "High" | "Medium" | "Low"
       }
     ],
@@ -1515,7 +1516,11 @@ Focus on factual, significant developments. Cover Taiwan, US-China relations, CC
               </div>
             </div>
             <div class="news-summary">${item.summary}</div>
-            ${item.source ? `<div style="margin-top:6px;font-size:11px;color:var(--text3)">Source: ${item.source}</div>` : ''}
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+              ${item.url
+                ? `<a class="news-link" href="${item.url}" target="_blank" rel="noopener noreferrer">${item.source || 'Read article'} &#8599;</a>`
+                : item.source ? `<span style="font-size:11px;color:var(--text3)">${item.source}</span>` : ''}
+            </div>
           </div>`;
         }
       }
