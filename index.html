@@ -381,6 +381,41 @@
   .record-action-btn.danger:hover { color: var(--high); border-color: var(--high); background: rgba(224,122,95,0.08); }
   .folder-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(26,95,138,0.08); color: var(--info); border: 1px solid rgba(26,95,138,0.2); }
 
+
+  /* Main tabs */
+  .main-tabs { display: flex; gap: 4px; margin-bottom: 28px; border-bottom: 1px solid var(--border2); padding-bottom: 0; }
+  .main-tab { padding: 9px 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--text3); border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font-mono); transition: all 0.15s; }
+  .main-tab:hover { color: var(--text2); }
+  .main-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  /* News */
+  .news-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .news-group-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+  .news-group-tab { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: var(--font-mono); transition: all 0.15s; }
+  .news-group-tab:hover { background: var(--bg3); color: var(--text); }
+  .news-group-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .news-loading { padding: 48px 20px; }
+  .news-group-section { margin-bottom: 28px; }
+  .news-group-title { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border2); }
+  .news-group-name { font-family: var(--font-display); font-size: 20px; font-weight: 300; color: var(--text); }
+  .news-group-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .news-group-count { font-size: 11px; color: var(--text3); background: var(--bg3); padding: 2px 8px; border-radius: 10px; }
+  .news-cards { display: flex; flex-direction: column; gap: 8px; }
+  .news-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 18px; transition: border-color 0.15s; }
+  .news-card:hover { border-color: var(--border2); }
+  .news-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+  .news-headline { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; flex: 1; }
+  .news-meta { display: flex; gap: 8px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+  .news-source { font-size: 11px; color: var(--text3); }
+  .news-time { font-size: 11px; color: var(--text3); }
+  .news-category-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  .news-summary { font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .news-link { font-size: 11px; color: var(--info); text-decoration: none; margin-top: 6px; display: inline-block; }
+  .news-link:hover { text-decoration: underline; }
+  .news-empty { text-align: center; padding: 48px; color: var(--text3); font-size: 13px; background: var(--bg2); border: 1px dashed var(--border2); border-radius: var(--radius-lg); }
+  .news-empty-big { font-family: var(--font-display); font-size: 20px; font-weight: 300; color: var(--text3); margin-bottom: 6px; }
+  .news-last-updated { font-size: 11px; color: var(--text3); margin-bottom: 16px; }
+
   @media (max-width: 900px) {
     .sidebar { display: none; }
     .metrics { grid-template-columns: repeat(2, 1fr); }
@@ -461,6 +496,14 @@
 
   <!-- Main -->
   <main class="main">
+    <!-- Top nav tabs -->
+    <div class="main-tabs">
+      <button class="main-tab active" id="tab-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+      <button class="main-tab" id="tab-news" onclick="switchTab('news')">Daily News Digest</button>
+    </div>
+
+    <!-- Dashboard view -->
+    <div id="view-dashboard">
     <div class="page-header">
       <div>
         <div class="page-title">China Bullpen <em>Analysis Tool</em></div>
@@ -607,6 +650,32 @@
         <div>Add a new submission above to get started</div>
       </div>
     </div>
+    </div><!-- end view-dashboard -->
+
+    <!-- News view -->
+    <div id="view-news" style="display:none">
+      <div class="news-header">
+        <div>
+          <div class="page-title">China Daily <em>Digest</em></div>
+          <div class="page-date" id="news-date-label"></div>
+        </div>
+        <div class="header-actions">
+          <button class="btn" onclick="refreshNews()" id="news-refresh-btn">Refresh news</button>
+        </div>
+      </div>
+      <div class="news-group-tabs">
+        <button class="news-group-tab active" onclick="setNewsGroup('all', this)">All</button>
+        <button class="news-group-tab" onclick="setNewsGroup('Politics', this)">Politics</button>
+        <button class="news-group-tab" onclick="setNewsGroup('Military', this)">Military</button>
+        <button class="news-group-tab" onclick="setNewsGroup('Technology', this)">Technology</button>
+        <button class="news-group-tab" onclick="setNewsGroup('Economy', this)">Economy</button>
+      </div>
+      <div id="news-loading" style="display:none" class="news-loading">
+        <div class="spinner" style="width:20px;height:20px;margin:0 auto 12px"></div>
+        <div style="color:var(--text3);font-size:13px;text-align:center">Fetching and analyzing today's China news...</div>
+      </div>
+      <div id="news-content"></div>
+    </div><!-- end view-news -->
   </main>
 </div>
 
@@ -1288,6 +1357,173 @@ Only include groups with 2 or more submissions. If no meaningful similarities ex
     showToast('CSV exported.');
   }
 
+
+
+  // ── News Digest ───────────────────────────────────────────
+  let newsDigest = null;
+  let activeNewsGroup = 'all';
+  const NEWS_CACHE_KEY = 'china_news_digest';
+  const GROUP_COLORS = {
+    Politics:   { dot: '#c0392b', badge: 'rgba(192,57,43,0.1)',  text: '#c0392b', border: 'rgba(192,57,43,0.25)' },
+    Military:   { dot: '#6b2d2d', badge: 'rgba(107,45,45,0.1)',  text: '#6b2d2d', border: 'rgba(107,45,45,0.25)' },
+    Technology: { dot: '#1a5f8a', badge: 'rgba(26,95,138,0.1)',  text: '#1a5f8a', border: 'rgba(26,95,138,0.25)' },
+    Economy:    { dot: '#2d6a4f', badge: 'rgba(45,106,79,0.1)',  text: '#2d6a4f', border: 'rgba(45,106,79,0.25)' },
+  };
+
+  function switchTab(tab) {
+    document.getElementById('view-dashboard').style.display = tab === 'dashboard' ? 'block' : 'none';
+    document.getElementById('view-news').style.display = tab === 'news' ? 'block' : 'none';
+    document.getElementById('tab-dashboard').classList.toggle('active', tab === 'dashboard');
+    document.getElementById('tab-news').classList.toggle('active', tab === 'news');
+    if (tab === 'news') initNews();
+  }
+
+  function setNewsGroup(group, el) {
+    activeNewsGroup = group;
+    document.querySelectorAll('.news-group-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderNewsContent();
+  }
+
+  async function initNews() {
+    const today = new Date().toISOString().split('T')[0];
+    const cached = JSON.parse(localStorage.getItem(NEWS_CACHE_KEY) || 'null');
+    if (cached && cached.date === today) {
+      newsDigest = cached;
+      renderNewsContent();
+      return;
+    }
+    await fetchNews();
+  }
+
+  async function refreshNews() {
+    localStorage.removeItem(NEWS_CACHE_KEY);
+    newsDigest = null;
+    await fetchNews();
+  }
+
+  async function fetchNews() {
+    document.getElementById('news-loading').style.display = 'block';
+    document.getElementById('news-content').innerHTML = '';
+    document.getElementById('news-refresh-btn').disabled = true;
+
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('news-date-label').textContent = today;
+
+    const prompt = `Today is ${today}. You are a China analyst. Search for and summarize today's most important news stories about China across four categories: Politics, Military, Technology, and Economy.
+
+For each category, provide 4-6 of the most significant stories from today or the last 24 hours.
+
+Respond ONLY with a valid JSON object (no markdown, no explanation):
+{
+  "date": "${new Date().toISOString().split('T')[0]}",
+  "generated": "${new Date().toISOString()}",
+  "categories": {
+    "Politics": [
+      {
+        "headline": "Short punchy headline",
+        "summary": "1-2 sentence summary of what happened and why it matters.",
+        "source": "Source name e.g. Reuters",
+        "significance": "High" | "Medium" | "Low"
+      }
+    ],
+    "Military": [...],
+    "Technology": [...],
+    "Economy": [...]
+  }
+}
+
+Focus on factual, significant developments. Cover Taiwan, US-China relations, CCP leadership, PLA activities, tech companies, trade, and economic data where relevant today.`;
+
+    try {
+      const response = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'analyze',
+          payload: {
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4000,
+            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+            messages: [{ role: 'user', content: prompt }]
+          }
+        })
+      });
+
+      if (!response.ok) throw new Error('API error ' + response.status);
+      const data = await response.json();
+
+      // Extract JSON from response (may be in text block after tool use)
+      let jsonText = null;
+      if (data.content) {
+        for (const block of data.content) {
+          if (block.type === 'text' && block.text) {
+            const cleaned = block.text.trim().replace(/```json|```/g, '').trim();
+            try { JSON.parse(cleaned); jsonText = cleaned; break; } catch(e) {}
+            // Try finding JSON object inside the text
+            const match = cleaned.match(/\{[\s\S]*\}/);
+            if (match) { try { JSON.parse(match[0]); jsonText = match[0]; break; } catch(e) {} }
+          }
+        }
+      }
+
+      if (!jsonText) throw new Error('No valid JSON in response');
+      newsDigest = JSON.parse(jsonText);
+      newsDigest.date = new Date().toISOString().split('T')[0];
+      localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(newsDigest));
+      renderNewsContent();
+
+    } catch(e) {
+      document.getElementById('news-content').innerHTML = `<div class="news-empty"><div class="news-empty-big">Could not load news</div><div>${e.message}</div></div>`;
+    }
+
+    document.getElementById('news-loading').style.display = 'none';
+    document.getElementById('news-refresh-btn').disabled = false;
+  }
+
+  function renderNewsContent() {
+    if (!newsDigest) return;
+    const container = document.getElementById('news-content');
+    const groups = ['Politics', 'Military', 'Technology', 'Economy'];
+    const toShow = activeNewsGroup === 'all' ? groups : [activeNewsGroup];
+
+    const generated = newsDigest.generated ? new Date(newsDigest.generated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+    let html = generated ? `<div class="news-last-updated">Last updated at ${generated}</div>` : '';
+
+    for (const group of toShow) {
+      const items = newsDigest.categories?.[group] || [];
+      const colors = GROUP_COLORS[group];
+      html += `<div class="news-group-section">
+        <div class="news-group-title">
+          <div class="news-group-dot" style="background:${colors.dot}"></div>
+          <span class="news-group-name">${group}</span>
+          <span class="news-group-count">${items.length} stories</span>
+        </div>
+        <div class="news-cards">`;
+
+      if (!items.length) {
+        html += `<div style="font-size:12px;color:var(--text3);padding:8px 0;">No stories found for this category today.</div>`;
+      } else {
+        for (const item of items) {
+          const sigColor = item.significance === 'High' ? 'var(--high)' : item.significance === 'Medium' ? 'var(--med)' : 'var(--text3)';
+          html += `<div class="news-card">
+            <div class="news-card-top">
+              <div class="news-headline">${item.headline}</div>
+              <div class="news-meta">
+                ${item.significance ? `<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${colors.badge};color:${colors.text};border:1px solid ${colors.border};font-weight:500;text-transform:uppercase;letter-spacing:0.04em">${group}</span>` : ''}
+                ${item.significance ? `<span style="font-size:11px;color:${sigColor};font-weight:500">${item.significance}</span>` : ''}
+              </div>
+            </div>
+            <div class="news-summary">${item.summary}</div>
+            ${item.source ? `<div style="margin-top:6px;font-size:11px;color:var(--text3)">Source: ${item.source}</div>` : ''}
+          </div>`;
+        }
+      }
+      html += `</div></div>`;
+    }
+
+    container.innerHTML = html;
+  }
 
   // ── Folder state ─────────────────────────────────────────
   let folders = JSON.parse(localStorage.getItem('obs_folders') || '[]');
