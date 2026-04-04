@@ -45,17 +45,20 @@ export default async function handler(req, res) {
     return res.status(response.status).end();
   }
 
-  // ── analyze (Anthropic) ────────────────────────────────────
+  // ── analyze / news (Anthropic) ─────────────────────────────
   if (action === 'analyze') {
     try {
+      const body = { ...payload };
+
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': ANTHROPIC_KEY,
           'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'web-search-2025-03-05',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
       const data = await response.json();
       return res.status(response.status).json(data);
