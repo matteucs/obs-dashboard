@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "api/proxy.js", "use": "@vercel/node" },
+    { "src": "api/generate-brief.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/proxy", "dest": "/api/proxy.js" },
+    { "src": "/api/generate-brief", "dest": "/api/generate-brief.js" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/generate-brief?type=daily",   "schedule": "0 6 * * *"   },
+    { "path": "/api/generate-brief?type=weekly",  "schedule": "0 7 * * 1"   },
+    { "path": "/api/generate-brief?type=monthly", "schedule": "0 8 1 * *"   },
+    { "path": "/api/generate-brief?type=yearly",  "schedule": "0 9 1 1 *"   }
+  ]
+}
