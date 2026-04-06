@@ -1725,7 +1725,8 @@ Focus on factual, significant developments. Cover Taiwan, US-China relations, CC
     // Meta bar
     html += `<div class="brief-meta">
       ${gen ? `<div class="brief-meta-item"><strong>Generated:</strong> ${gen}</div>` : ''}
-      <div class="brief-meta-item"><strong>Submissions:</strong> ${b.source_count?.submissions ?? '—'}</div>
+      <div class="brief-meta-item"><strong>News-driven analysis</strong></div>
+      <div class="brief-meta-item"><strong>Field submissions:</strong> ${b.source_count?.submissions ?? '—'} (${b.source_count?.high_priority_submissions ?? 0} high priority)</div>
       <div class="brief-meta-item"><strong>Overall risk:</strong> <span class="brief-risk ${riskClass(b.overall_risk)}">${b.overall_risk || '—'}</span></div>
     </div>`;
 
@@ -1778,6 +1779,12 @@ Focus on factual, significant developments. Cover Taiwan, US-China relations, CC
           </div>`;
         }
         html += `</div>`;
+      }
+      if (t.field_corroboration) {
+        html += `<div style="margin-top:10px;padding:10px 14px;background:rgba(26,95,138,0.06);border-left:2px solid var(--info);border-radius:0 var(--radius) var(--radius) 0;font-size:12px;color:var(--text2)">
+          <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--info);display:block;margin-bottom:3px">Field corroboration</span>
+          ${t.field_corroboration}
+        </div>`;
       }
       html += `</div><hr class="brief-divider">`;
     }
