@@ -463,7 +463,7 @@
       </div>
     </div>
     <div class="form-card" id="form-card">
-  <form id="obs-form" novalidate>
+  <form id="obs-form" novalidate onsubmit="handleFormSubmit(event)">
 
     <!-- Submitter info -->
     <div class="form-section">
@@ -525,7 +525,7 @@
     <div class="success-sub">Your report has been received and will be reviewed by the analysis team. Thank you for your contribution.</div>
     <div class="success-ref" id="success-ref"></div>
     <br/>
-    <button class="new-submission-btn" onclick="resetForm()">Submit another observation</button>
+    <button class="new-submission-btn" onclick="resetSubmitForm()">Submit another observation</button>
   </div>
 </div>
 
@@ -740,122 +740,123 @@
   // Init
   initNews();
 
-  // ── Submission form ──────────────────────────────────
 
-
-  // Set today's date as default
-  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  // ── Submission form ──────────────────────────────────────
+  // Set today's date on load
+  (function() {
+    const d = document.getElementById('f-date');
+    if (d) d.value = new Date().toISOString().split('T')[0];
+  })();
 
   function updateCharCount() {
     const val = document.getElementById('f-narrative').value;
     const el = document.getElementById('char-count');
+    if (!el) return;
     el.textContent = val.length + ' / 3000';
     el.classList.toggle('warn', val.length > 2700);
   }
 
   function showFormToast(msg) {
     const t = document.getElementById('form-toast');
+    if (!t) return;
     t.textContent = msg;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3000);
   }
 
-  function clearErrors() {
+  function clearFormErrors() {
     document.querySelectorAll('.field-error').forEach(e => e.textContent = '');
     document.querySelectorAll('.invalid').forEach(e => e.classList.remove('invalid'));
   }
 
-  function setError(fieldId, errId, msg) {
-    document.getElementById(fieldId).classList.add('invalid');
-    document.getElementById(errId).textContent = msg;
+  function setFormError(fieldId, errId, msg) {
+    const f = document.getElementById(fieldId);
+    const e = document.getElementById(errId);
+    if (f) f.classList.add('invalid');
+    if (e) e.textContent = msg;
   }
 
-  function validate() {
-    clearErrors();
+  function validateForm() {
+    clearFormErrors();
     let valid = true;
-
-    const name = document.getElementById('f-name').value.trim();
-    const date = document.getElementById('f-date').value;
-    const narrative = document.getElementById('f-narrative').value.trim();
-    if (!name) { setError('f-name', 'err-name', 'Full name is required.'); valid = false; }
-    if (!date) { setError('f-date', 'err-date', 'Date is required.'); valid = false; }
-    if (!narrative || narrative.length < 20) { setError('f-narrative', 'err-narrative', 'Please provide a detailed narrative (at least 20 characters).'); valid = false; }
-
+    const name      = (document.getElementById('f-name')?.value || '').trim();
+    const date      = document.getElementById('f-date')?.value || '';
+    const narrative = (document.getElementById('f-narrative')?.value || '').trim();
+    if (!name)                    { setFormError('f-name', 'err-name', 'Full name is required.'); valid = false; }
+    if (!date)                    { setFormError('f-date', 'err-date', 'Date is required.'); valid = false; }
+    if (narrative.length < 20)    { setFormError('f-narrative', 'err-narrative', 'Please provide a detailed narrative (at least 20 characters).'); valid = false; }
     return valid;
   }
 
-  document.getElementById('obs-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    if (!validate()) return;
-
+  function resetSubmitForm() {
+    const form = document.getElementById('obs-form');
+    if (form) form.reset();
+    const d = document.getElementById('f-date');
+    if (d) d.value = new Date().toISOString().split('T')[0];
+    const cc = document.getElementById('char-count');
+    if (cc) cc.textContent = '0 / 3000';
+    clearFormErrors();
+    const formEl = document.getElementById('obs-form');
+    const successEl = document.getElementById('success-screen');
     const btn = document.getElementById('submit-btn');
-    btn.disabled = true;
-    btn.textContent = 'Submitting...';
-
-    const name      = document.getElementById('f-name').value.trim();
-    const date      = document.getElementById('f-date').value;
-    const email     = document.getElementById('f-email').value.trim();
-    const phone     = document.getElementById('f-phone').value.trim();
-    const narrative = document.getElementById('f-narrative').value.trim();
-    const location  = document.getElementById('f-location').value.trim();
-
-    const contact = [email, phone].filter(Boolean).join(' / ');
-    const id = Date.now();
-    const refNumber = 'OBS-' + id.toString().slice(-8).toUpperCase();
-
-    // Build a narrative that includes location and urgency context
-    const fullNarrative = location
-      ? `[${location}] ${narrative}`
-      : narrative;
-
-    // Analysis will be assigned by the tool after submission
-    const preAnalysis = null;
-
-    try {
-      const res = await fetch(PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'save',
-          payload: {
-            id,
-            date,
-            name,
-            contact,
-            narrative: fullNarrative,
-            analysis: preAnalysis,
-            similar_group_index: null,
-            folder_id: null,
-            ref_number: refNumber
-          }
-        })
-      });
-
-      if (!res.ok) throw new Error('Submission failed. Please try again.');
-
-      // Show success
-      document.getElementById('obs-form').style.display = 'none';
-      document.getElementById('success-screen').style.display = 'block';
-      document.getElementById('success-ref').textContent = 'Reference number: ' + refNumber;
-
-    } catch(err) {
-      showFormToast(err.message || 'Something went wrong. Please try again.');
-      btn.disabled = false;
-      btn.textContent = 'Submit observation';
-    }
-  });
-
-  function resetForm() {
-    document.getElementById('obs-form').reset();
-    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-    document.getElementById('char-count').textContent = '0 / 3000';
-    clearErrors();
-    document.getElementById('obs-form').style.display = 'block';
-    document.getElementById('success-screen').style.display = 'none';
-    document.getElementById('submit-btn').disabled = false;
-    document.getElementById('submit-btn').textContent = 'Submit observation';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (formEl) formEl.style.display = 'block';
+    if (successEl) successEl.style.display = 'none';
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit observation'; }
   }
+
+  async function handleFormSubmit(e) {
+      e.preventDefault();
+      if (!validateForm()) return;
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      const name      = document.getElementById('f-name').value.trim();
+      const date      = document.getElementById('f-date').value;
+      const email     = (document.getElementById('f-email')?.value || '').trim();
+      const phone     = (document.getElementById('f-phone')?.value || '').trim();
+      const narrative = document.getElementById('f-narrative').value.trim();
+      const location  = (document.getElementById('f-location')?.value || '').trim();
+      const contact   = [email, phone].filter(Boolean).join(' / ');
+      const id        = Date.now();
+      const refNumber = 'OBS-' + id.toString().slice(-8).toUpperCase();
+      const fullNarrative = location ? '[' + location + '] ' + narrative : narrative;
+
+      try {
+        const res = await fetch(PROXY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save',
+            payload: {
+              id,
+              date,
+              name,
+              contact,
+              narrative: fullNarrative,
+              analysis: null,
+              similar_group_index: null,
+              folder_id: null,
+              ref_number: refNumber
+            }
+          })
+        });
+
+        if (!res.ok) throw new Error('Submission failed. Please try again.');
+
+        document.getElementById('obs-form').style.display = 'none';
+        document.getElementById('success-screen').style.display = 'block';
+        const refEl = document.getElementById('success-ref');
+        if (refEl) refEl.textContent = 'Reference number: ' + refNumber;
+
+      } catch(err) {
+        showFormToast(err.message || 'Something went wrong. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Submit observation';
+      }
+  }
+
 
 </script>
 </body>
