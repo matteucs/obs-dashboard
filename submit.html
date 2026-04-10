@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Observation Submission Form</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f2ee;
+    --bg2: #ffffff;
+    --bg3: #eceae5;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1917;
+    --text2: #4a4845;
+    --text3: #8a8784;
+    --accent: #6b4f2a;
+    --success: #27714a;
+    --danger: #c0392b;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 16px 60px;
+    line-height: 1.6;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+    max-width: 560px;
+  }
+
+  .header-badge {
+    display: inline-block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text3);
+    background: var(--bg3);
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+
+  .header h1 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+
+  .header h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .header p {
+    font-size: 13px;
+    color: var(--text3);
+    max-width: 420px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  .form-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px 36px;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .form-section {
+    margin-bottom: 24px;
+  }
+
+  .form-section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 11px;
+    color: var(--text2);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  .required-star { color: var(--danger); margin-left: 2px; }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="date"],
+  select,
+  textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(107,79,42,0.08);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.6;
+  }
+
+  select { cursor: pointer; }
+
+  .char-count {
+    font-size: 11px;
+    color: var(--text3);
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  .char-count.warn { color: var(--danger); }
+
+  .field-hint {
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.5;
+  }
+
+  .submit-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .submit-note {
+    font-size: 11px;
+    color: var(--text3);
+    max-width: 280px;
+    line-height: 1.5;
+  }
+
+  .submit-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 12px 28px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .submit-btn:hover { opacity: 0.88; }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* Success state */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 48px 24px;
+  }
+
+  .success-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(39,113,74,0.12);
+    border: 2px solid rgba(39,113,74,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 22px;
+  }
+
+  .success-title {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 300;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .success-sub {
+    font-size: 13px;
+    color: var(--text3);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  .success-ref {
+    font-size: 12px;
+    color: var(--text3);
+    background: var(--bg3);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    display: inline-block;
+  }
+
+  .new-submission-btn {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text2);
+    padding: 10px 22px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .new-submission-btn:hover { background: var(--bg3); color: var(--text); }
+
+  /* Error */
+  .field-error {
+    font-size: 11px;
+    color: var(--danger);
+    margin-top: 3px;
+  }
+
+  input.invalid, textarea.invalid, select.invalid {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(192,57,43,0.08);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--text);
+    color: var(--bg2);
+    font-size: 12px;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    opacity: 0;
+    transition: all 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 99;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .footer {
+    margin-top: 32px;
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+  }
+
+  @media (max-width: 500px) {
+    .form-card { padding: 22px 18px; }
+    .field-grid { grid-template-columns: 1fr; }
+    .submit-row { flex-direction: column-reverse; align-items: stretch; text-align: center; }
+    .submit-note { max-width: 100%; }
+    .submit-btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-badge">Secure Submission Portal</div>
+  <h1>China Bullpen<br/><em>Observation Report</em></h1>
+  <p>Submit your field observation securely. All submissions are reviewed by our analysis team.</p>
+</div>
+
+<div class="form-card" id="form-card">
+  <form id="obs-form" novalidate>
+
+    <!-- Submitter info -->
+    <div class="form-section">
+      <div class="form-section-label">Submitter information</div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="f-name">Full name <span class="required-star">*</span></label>
+          <input type="text" id="f-name" placeholder="Your full name" autocomplete="name" />
+          <div class="field-error" id="err-name"></div>
+        </div>
+        <div class="field">
+          <label for="f-date">Date of observation <span class="required-star">*</span></label>
+          <input type="date" id="f-date" />
+          <div class="field-error" id="err-date"></div>
+        </div>
+        <div class="field">
+          <label for="f-email">Email address</label>
+          <input type="email" id="f-email" placeholder="your@email.com" autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="f-phone">Phone number</label>
+          <input type="tel" id="f-phone" placeholder="+1 (555) 000-0000" autocomplete="tel" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Observation details -->
+    <div class="form-section">
+      <div class="form-section-label">Observation details</div>
+      <div class="field-grid">
+
+        <div class="field full">
+          <label for="f-narrative">Observation narrative <span class="required-star">*</span></label>
+          <textarea id="f-narrative" placeholder="Describe what you observed in as much detail as possible. Include: what happened, where, when, who was involved, and any other relevant context..." maxlength="3000" oninput="updateCharCount()"></textarea>
+          <div class="char-count" id="char-count">0 / 3000</div>
+          <div class="field-error" id="err-narrative"></div>
+        </div>
+        <div class="field full">
+          <label for="f-location">Location / context</label>
+          <input type="text" id="f-location" placeholder="e.g. Beijing, South China Sea, specific organization, etc." />
+          <div class="field-hint" style="margin-top:4px;">Optional — helps with geographic analysis</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="submit-row">
+      <div class="submit-note">
+        Fields marked <span class="required-star">*</span> are required. Your contact details are kept confidential and only used for follow-up if needed.
+      </div>
+      <button type="submit" class="submit-btn" id="submit-btn">Submit observation</button>
+    </div>
+
+  </form>
+
+  <!-- Success screen -->
+  <div class="success-screen" id="success-screen">
+    <div class="success-icon">&#10003;</div>
+    <div class="success-title">Observation submitted</div>
+    <div class="success-sub">Your report has been received and will be reviewed by the analysis team. Thank you for your contribution.</div>
+    <div class="success-ref" id="success-ref"></div>
+    <br/>
+    <button class="new-submission-btn" onclick="resetForm()">Submit another observation</button>
+  </div>
+</div>
+
+<div class="footer">
+  Submissions are confidential and used solely for intelligence analysis purposes.
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ✅ Replace with your Vercel proxy URL
+  const PROXY_URL = 'https://your-proxy.vercel.app/api/proxy';
+
+  // Set today's date as default
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+
+  function updateCharCount() {
+    const val = document.getElementById('f-narrative').value;
+    const el = document.getElementById('char-count');
+    el.textContent = val.length + ' / 3000';
+    el.classList.toggle('warn', val.length > 2700);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function clearErrors() {
+    document.querySelectorAll('.field-error').forEach(e => e.textContent = '');
+    document.querySelectorAll('.invalid').forEach(e => e.classList.remove('invalid'));
+  }
+
+  function setError(fieldId, errId, msg) {
+    document.getElementById(fieldId).classList.add('invalid');
+    document.getElementById(errId).textContent = msg;
+  }
+
+  function validate() {
+    clearErrors();
+    let valid = true;
+
+    const name = document.getElementById('f-name').value.trim();
+    const date = document.getElementById('f-date').value;
+    const narrative = document.getElementById('f-narrative').value.trim();
+    if (!name) { setError('f-name', 'err-name', 'Full name is required.'); valid = false; }
+    if (!date) { setError('f-date', 'err-date', 'Date is required.'); valid = false; }
+    if (!narrative || narrative.length < 20) { setError('f-narrative', 'err-narrative', 'Please provide a detailed narrative (at least 20 characters).'); valid = false; }
+
+    return valid;
+  }
+
+  document.getElementById('obs-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    if (!validate()) return;
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    const name      = document.getElementById('f-name').value.trim();
+    const date      = document.getElementById('f-date').value;
+    const email     = document.getElementById('f-email').value.trim();
+    const phone     = document.getElementById('f-phone').value.trim();
+    const narrative = document.getElementById('f-narrative').value.trim();
+    const location  = document.getElementById('f-location').value.trim();
+
+    const contact = [email, phone].filter(Boolean).join(' / ');
+    const id = Date.now();
+    const refNumber = 'OBS-' + id.toString().slice(-8).toUpperCase();
+
+    // Build a narrative that includes location and urgency context
+    const fullNarrative = location
+      ? `[${location}] ${narrative}`
+      : narrative;
+
+    // Analysis will be assigned by the tool after submission
+    const preAnalysis = null;
+
+    try {
+      const res = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save',
+          payload: {
+            id,
+            date,
+            name,
+            contact,
+            narrative: fullNarrative,
+            analysis: preAnalysis,
+            similar_group_index: null,
+            folder_id: null,
+            ref_number: refNumber
+          }
+        })
+      });
+
+      if (!res.ok) throw new Error('Submission failed. Please try again.');
+
+      // Show success
+      document.getElementById('obs-form').style.display = 'none';
+      document.getElementById('success-screen').style.display = 'block';
+      document.getElementById('success-ref').textContent = 'Reference number: ' + refNumber;
+
+    } catch(err) {
+      showToast(err.message || 'Something went wrong. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Submit observation';
+    }
+  });
+
+  function resetForm() {
+    document.getElementById('obs-form').reset();
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('char-count').textContent = '0 / 3000';
+    clearErrors();
+    document.getElementById('obs-form').style.display = 'block';
+    document.getElementById('success-screen').style.display = 'none';
+    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('submit-btn').textContent = 'Submit observation';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+</body>
+</html>
