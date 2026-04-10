@@ -97,6 +97,7 @@ INSTRUCTIONS:
 4. ONLY AFTER building the news-driven analysis, check whether any field submissions corroborate, contradict, or add texture to specific news topics. If they do, note it. If they don't, say nothing — do not force a connection.
 5. The overall_assessment should be a complete picture of what the news shows. Field submissions may add a sentence of nuance but must not displace news-driven conclusions.
 6. ${briefType !== 'daily' ? 'Emphasize trajectory and change over time.' : 'Focus on what is most significant today.'}
+7. ECONOMIC INDICATORS SECTION: Search specifically for the latest values of: China GDP growth, NBS and Caixin PMI (manufacturing and services), export/import data, USD/CNY exchange rate, CPI, PPI, urban and youth unemployment, FDI flows, property market data (Evergrande, Country Garden, new home prices), local government debt, and any alternative indicators like electricity consumption or freight volumes. Use the most recent data available — prioritize official NBS releases, PBOC statements, and reputable financial sources like Bloomberg, Reuters, and Caixin. This section should read like a Bloomberg economic dashboard, not a news summary.
 
 Respond ONLY with valid JSON:
 {
@@ -116,6 +117,73 @@ Respond ONLY with valid JSON:
     "regional": { "tldr": "...", "analysis": "...", "trends": [...], "signals": [...], "risk": "...", "field_corroboration": "..." },
     "military":  { "tldr": "...", "analysis": "...", "trends": [...], "signals": [...], "risk": "...", "field_corroboration": "..." },
     "technology":{ "tldr": "...", "analysis": "...", "trends": [...], "signals": [...], "risk": "...", "field_corroboration": "..." }
+  },
+  "economic_indicators": {
+    "search_date": "${now.toISOString().split('T')[0]}",
+    "overview": "2-3 sentence summary of China's current macroeconomic condition based on the latest data.",
+    "indicators": [
+      {
+        "name": "GDP Growth Rate",
+        "value": "Latest official or estimated figure with period",
+        "previous": "Prior period value",
+        "trend": "Rising|Falling|Stable|Uncertain",
+        "interpretation": "What this means for China's economy and global impact."
+      }
+    ],
+    "pmi": {
+      "manufacturing": "Latest NBS or Caixin manufacturing PMI value and date",
+      "services": "Latest NBS or Caixin services PMI value and date",
+      "interpretation": "What PMI data signals about economic momentum."
+    },
+    "trade": {
+      "exports": "Latest export growth YoY%",
+      "imports": "Latest import growth YoY%",
+      "surplus": "Latest trade surplus figure",
+      "key_partners": "Most significant trade partner developments",
+      "interpretation": "What trade data signals about domestic demand and export competitiveness."
+    },
+    "currency": {
+      "usd_cny": "Current USD/CNY rate",
+      "trend": "Appreciation|Depreciation|Stable",
+      "pboc_action": "Any recent PBOC interventions or policy signals",
+      "interpretation": "Currency implications for trade and capital flows."
+    },
+    "real_estate": {
+      "status": "Current state of property market",
+      "key_developers": "Status of major developers e.g. Evergrande, Country Garden",
+      "policy_response": "Government measures to stabilize sector",
+      "interpretation": "Property sector impact on broader economy."
+    },
+    "inflation": {
+      "cpi": "Latest CPI figure",
+      "ppi": "Latest PPI figure",
+      "interpretation": "Inflation/deflation dynamics and policy implications."
+    },
+    "employment": {
+      "urban_unemployment": "Latest urban unemployment rate",
+      "youth_unemployment": "Latest youth unemployment rate if available",
+      "interpretation": "Labor market conditions and social stability implications."
+    },
+    "foreign_investment": {
+      "fdi": "Latest FDI inflow data",
+      "trend": "Rising|Falling|Stable",
+      "interpretation": "What FDI trends signal about business confidence in China."
+    },
+    "debt": {
+      "local_government": "Local government debt situation",
+      "corporate": "Corporate debt levels and stress indicators",
+      "household": "Household debt and consumption outlook",
+      "interpretation": "Debt dynamics and systemic risk assessment."
+    },
+    "forward_indicators": [
+      {
+        "name": "Indicator name e.g. Li Keqiang Index, Electricity Consumption",
+        "value": "Current reading",
+        "interpretation": "What this alternative indicator suggests about true economic activity."
+      }
+    ],
+    "overall_assessment": "High|Medium-High|Medium|Medium-Low|Low",
+    "overall_assessment_text": "2-3 sentence bottom line on China's economic health and trajectory, including key risks and opportunities."
   },
   "source_count": {
     "submissions": ${analyzed.length},
