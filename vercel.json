@@ -1,19 +1,25 @@
 {
   "version": 2,
   "builds": [
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "api/proxy.js", "use": "@vercel/node" },
+    { "src": "index.html",    "use": "@vercel/static" },
+    { "src": "submit.html",   "use": "@vercel/static" },
+    { "src": "analyst.html",  "use": "@vercel/static" },
+    { "src": "api/proxy.js",          "use": "@vercel/node" },
+    { "src": "api/auth.js",           "use": "@vercel/node" },
     { "src": "api/generate-brief.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/api/proxy", "dest": "/api/proxy.js" },
+    { "src": "/api/proxy",          "dest": "/api/proxy.js" },
+    { "src": "/api/auth",           "dest": "/api/auth.js" },
     { "src": "/api/generate-brief", "dest": "/api/generate-brief.js" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/submit.html",        "dest": "/submit.html" },
+    { "src": "/analyst.html",       "dest": "/analyst.html" },
+    { "src": "/(.*)",               "dest": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/generate-brief?type=daily",   "schedule": "0 6 * * *"   },
-    { "path": "/api/generate-brief?type=weekly",  "schedule": "0 7 * * 1"   },
-    { "path": "/api/generate-brief?type=monthly", "schedule": "0 8 1 * *"   },
-    { "path": "/api/generate-brief?type=yearly",  "schedule": "0 9 1 1 *"   }
+    { "path": "/api/generate-brief?type=daily",   "schedule": "0 6 * * *" },
+    { "path": "/api/generate-brief?type=weekly",  "schedule": "0 7 * * 1" },
+    { "path": "/api/generate-brief?type=monthly", "schedule": "0 8 1 * *" },
+    { "path": "/api/generate-brief?type=yearly",  "schedule": "0 9 1 1 *" }
   ]
 }
