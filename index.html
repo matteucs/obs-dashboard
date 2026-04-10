@@ -3,393 +3,48 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>China Bullpen Analysis Tool</title>
+<title>China Bullpen</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --bg: #f4f2ee;
-    --bg2: #ffffff;
-    --bg3: #eceae5;
-    --border: rgba(0,0,0,0.08);
-    --border2: rgba(0,0,0,0.16);
-    --text: #1a1917;
-    --text2: #4a4845;
-    --text3: #8a8784;
-    --accent: #6b4f2a;
-    --accent2: #2d6a4f;
-    --high: #c0392b;
-    --med: #c47a1a;
-    --low: #27714a;
-    --info: #1a5f8a;
+    --bg: #f4f2ee; --bg2: #ffffff; --bg3: #eceae5;
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.16);
+    --text: #1a1917; --text2: #4a4845; --text3: #8a8784;
+    --accent: #6b4f2a; --accent2: #2d6a4f;
+    --high: #c0392b; --med: #c47a1a; --low: #27714a; --info: #1a5f8a;
     --font-display: 'Fraunces', Georgia, serif;
     --font-mono: 'DM Mono', monospace;
-    --radius: 10px;
-    --radius-lg: 16px;
+    --radius: 10px; --radius-lg: 16px;
   }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 13px; min-height: 100vh; line-height: 1.6; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    min-height: 100vh;
-    line-height: 1.6;
-  }
+  /* Top bar */
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border2); padding: 0 36px; display: flex; justify-content: space-between; align-items: center; height: 52px; }
+  .topbar-logo { font-family: var(--font-display); font-size: 16px; font-weight: 300; color: var(--text); letter-spacing: -0.3px; }
+  .topbar-logo em { font-style: italic; color: var(--accent); }
+  .topbar-links { display: flex; gap: 12px; align-items: center; }
+  .topbar-link { font-size: 12px; color: var(--text3); text-decoration: none; padding: 6px 12px; border-radius: var(--radius); transition: all 0.15s; border: 1px solid transparent; }
+  .topbar-link:hover { color: var(--text); background: var(--bg3); }
+  .topbar-link.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .topbar-link.primary:hover { opacity: 0.88; background: var(--accent); }
 
-  /* Layout */
-  .shell { display: flex; min-height: 100vh; }
-  .sidebar {
-    width: 260px;
-    flex-shrink: 0;
-    background: #f9f7f3;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-  }
-  .main { flex: 1; min-width: 0; padding: 32px 36px; }
+  .main { padding: 32px 36px; max-width: 900px; margin: 0 auto; }
 
-  /* Sidebar */
-  .sidebar-logo {
-    padding: 24px 20px 20px;
-    border-bottom: 1px solid var(--border);
-  }
-  .logo-label {
-    font-family: var(--font-display);
-    font-size: 18px;
-    font-weight: 300;
-    color: var(--text);
-    letter-spacing: -0.3px;
-  }
-  .logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; letter-spacing: 0.05em; text-transform: uppercase; }
-
-  .sidebar-section { padding: 16px 20px 8px; }
-  .sidebar-section-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
-
-  .stat-mini { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
-  .stat-mini:last-child { border-bottom: none; }
-  .stat-mini-label { color: var(--text2); font-size: 12px; }
-  .stat-mini-val { font-size: 13px; color: var(--text); font-weight: 500; }
-
-  .priority-bar { margin: 6px 0; }
-  .pb-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
-  .pb-label { width: 48px; font-size: 11px; color: var(--text2); }
-  .pb-track { flex: 1; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
-  .pb-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
-  .pb-count { font-size: 11px; color: var(--text3); width: 20px; text-align: right; }
-
-  .cat-list { margin-top: 4px; }
-  .cat-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: color 0.15s; }
-  .cat-item:last-child { border-bottom: none; }
-  .cat-item:hover .cat-name { color: var(--accent); }
-  .cat-name { font-size: 12px; color: var(--text2); }
-  .cat-count { font-size: 11px; color: var(--text3); background: var(--bg3); padding: 1px 7px; border-radius: 10px; }
-
-  /* Header */
-  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
-  .page-title { font-family: var(--font-display); font-size: 32px; font-weight: 300; color: var(--text); letter-spacing: -0.5px; line-height: 1.2; }
-  .page-title em { font-style: italic; color: var(--accent); }
-  .page-date { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
-
-  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .btn { padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border2); background: transparent; color: var(--text); font-family: var(--font-mono); font-size: 12px; cursor: pointer; transition: all 0.15s; }
-  .btn:hover { background: var(--bg3); border-color: var(--border2); }
-  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .btn-primary:hover { opacity: 0.88; background: var(--accent); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  /* Metric cards */
-  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
-  .metric-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 16px 18px;
-    position: relative;
-    overflow: hidden;
-  }
-  .metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-  }
-  .metric-card.m-high::before { background: var(--high); }
-  .metric-card.m-med::before { background: var(--med); }
-  .metric-card.m-low::before { background: var(--low); }
-  .metric-card.m-total::before { background: var(--accent); }
-  .metric-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
-  .metric-val { font-family: var(--font-display); font-size: 36px; font-weight: 300; color: var(--text); line-height: 1; }
-  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
-
-  /* Input area */
-  .input-panel {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 20px 22px;
-    margin-bottom: 24px;
-  }
-  .input-panel-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; }
-  .input-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-  .field { display: flex; flex-direction: column; gap: 5px; }
-  .field.full { grid-column: 1 / -1; }
-  .field label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
-  .field input, .field textarea {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    padding: 9px 12px;
-    outline: none;
-    transition: border-color 0.15s;
-    width: 100%;
-  }
-  .field input:focus, .field textarea:focus { border-color: var(--border2); }
-  .field textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
-  .input-actions { display: flex; gap: 8px; justify-content: flex-end; }
-
-  /* Records */
-  .records-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
-  .records-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
-  .search-box {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    padding: 7px 12px;
-    outline: none;
-    width: 200px;
-    transition: border-color 0.15s;
-  }
-  .search-box:focus { border-color: var(--border2); }
-
-  .records-list { display: flex; flex-direction: column; gap: 10px; }
-
-  .record-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 16px 20px;
-    transition: border-color 0.2s;
-    animation: fadeIn 0.3s ease;
-  }
-  .record-card:hover { border-color: var(--border2); }
-
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-
-  .record-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
-  .record-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .record-name { font-size: 13px; font-weight: 500; color: var(--text); }
-  .record-date { font-size: 11px; color: var(--text3); }
-
-  .badges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-  .badge {
-    font-size: 10px;
-    padding: 3px 9px;
-    border-radius: 20px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  .badge-high { background: rgba(192,57,43,0.1); color: var(--high); border: 1px solid rgba(192,57,43,0.25); }
-  .badge-medium { background: rgba(196,122,26,0.1); color: var(--med); border: 1px solid rgba(196,122,26,0.25); }
-  .badge-low { background: rgba(39,113,74,0.1); color: var(--low); border: 1px solid rgba(39,113,74,0.25); }
-  .badge-cat { background: rgba(107,79,42,0.08); color: var(--accent); border: 1px solid rgba(107,79,42,0.2); }
-  .badge-analyzing { background: rgba(26,95,138,0.08); color: var(--info); border: 1px solid rgba(26,95,138,0.2); }
-
-  .record-narrative { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
-  .record-summary {
-    background: var(--bg3);
-    border-left: 2px solid var(--accent);
-    border-radius: 0 var(--radius) var(--radius) 0;
-    padding: 10px 14px;
-    font-size: 12px;
-    color: var(--text2);
-    line-height: 1.6;
-    margin-bottom: 10px;
-  }
-  .record-summary-label { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
-
-  .record-contact { font-size: 11px; color: var(--text3); }
-  .record-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
-  .record-score { font-size: 11px; color: var(--text3); }
-  .score-val { color: var(--accent); font-weight: 500; }
-
-  .spinner {
-    display: inline-block;
-    width: 12px; height: 12px;
-    border: 2px solid rgba(26,95,138,0.2);
-    border-top-color: var(--info);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    vertical-align: middle;
-    margin-right: 6px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .empty-state {
-    text-align: center;
-    padding: 48px 20px;
-    color: var(--text3);
-    font-size: 13px;
-    background: var(--bg2);
-    border: 1px dashed rgba(0,0,0,0.15);
-    border-radius: var(--radius-lg);
-  }
-  .empty-state-big { font-family: var(--font-display); font-size: 22px; font-weight: 300; color: var(--text3); margin-bottom: 6px; }
-
-  .export-bar { display: flex; gap: 8px; align-items: center; }
-
-  .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-  .filter-pill {
-    font-size: 11px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    color: var(--text2);
-    background: transparent;
-    cursor: pointer;
-    font-family: var(--font-mono);
-    transition: all 0.15s;
-  }
-  .filter-pill:hover { border-color: var(--border2); color: var(--text); }
-  .filter-pill.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-
-  .toast {
-    position: fixed;
-    bottom: 24px; right: 24px;
-    background: var(--bg2);
-    border: 1px solid var(--border2);
-    border-radius: var(--radius);
-    padding: 10px 16px;
-    font-size: 12px;
-    color: var(--text);
-    z-index: 999;
-    opacity: 0;
-    transform: translateY(8px);
-    transition: all 0.2s;
-    pointer-events: none;
-  }
-  .toast.show { opacity: 1; transform: none; }
-
-  .badge-similar { background: rgba(45,106,79,0.1); color: var(--accent2); border: 1px solid rgba(45,106,79,0.3); }
-
-  .similar-panel {
-    background: var(--bg2);
-    border: 1px solid rgba(45,106,79,0.2);
-    border-left: 3px solid var(--accent2);
-    border-radius: var(--radius-lg);
-    padding: 14px 18px;
-    margin-bottom: 24px;
-    display: none;
-  }
-  .similar-panel.visible { display: block; }
-  .similar-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .similar-panel-title { font-size: 11px; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.1em; }
-  .similar-close { background: none; border: none; color: var(--text3); font-size: 16px; cursor: pointer; line-height: 1; padding: 0; }
-  .similar-close:hover { color: var(--text); }
-  .cluster-group { margin-bottom: 14px; }
-  .cluster-group:last-child { margin-bottom: 0; }
-  .cluster-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .cluster-theme { font-size: 12px; font-weight: 500; color: var(--text); }
-  .cluster-count { font-size: 10px; color: var(--text3); background: var(--bg3); padding: 2px 8px; border-radius: 10px; }
-  .cluster-reason { font-size: 11px; color: var(--text3); margin-bottom: 8px; font-style: italic; }
-  .cluster-items { display: flex; flex-direction: column; gap: 6px; }
-  .cluster-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; background: var(--bg3); border-radius: var(--radius); cursor: pointer; transition: background 0.15s; }
-  .cluster-item:hover { background: rgba(143,168,138,0.1); }
-  .cluster-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); flex-shrink: 0; margin-top: 4px; }
-  .cluster-item-name { font-size: 12px; color: var(--text); font-weight: 500; }
-  .cluster-item-snippet { font-size: 11px; color: var(--text3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 500px; }
-  .cluster-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
-
-  .record-card.highlighted { border-color: var(--accent2); background: rgba(143,168,138,0.05); }
-
-  .metric-card.m-similar::before { background: var(--accent2); }
-
-
-  /* Keyword search */
-  .search-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 16px; }
-  .search-row { display: flex; gap: 8px; align-items: center; }
-  .search-main-wrap { flex: 1; display: flex; align-items: center; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 10px; transition: border-color 0.15s; }
-  .search-main-wrap:focus-within { border-color: var(--border2); }
-  .search-icon { color: var(--text3); font-size: 14px; margin-right: 6px; flex-shrink: 0; }
-  .search-main { flex: 1; background: transparent; border: none; color: var(--text); font-family: var(--font-mono); font-size: 13px; padding: 9px 0; outline: none; }
-  .search-main::placeholder { color: var(--text3); }
-  .search-clear { background: none; border: none; color: var(--text3); font-size: 14px; cursor: pointer; padding: 0 4px; line-height: 1; }
-  .search-clear:hover { color: var(--text); }
-  .search-advanced { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-  .search-adv-grid { display: grid; grid-template-columns: auto auto auto; gap: 20px; flex-wrap: wrap; }
-  .search-field-group { display: flex; flex-direction: column; gap: 6px; }
-  .search-field-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
-  .search-checkboxes { display: flex; flex-wrap: wrap; gap: 6px 12px; }
-  .search-check { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); cursor: pointer; }
-  .search-check input { accent-color: var(--accent); cursor: pointer; }
-  .search-date { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; outline: none; width: 130px; }
-  .search-select { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; outline: none; cursor: pointer; }
-  .search-reset-btn { margin-top: 12px; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text3); font-family: var(--font-mono); font-size: 11px; padding: 5px 12px; cursor: pointer; transition: all 0.15s; }
-  .search-reset-btn:hover { color: var(--text); border-color: var(--border2); }
-  .search-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .search-tag { display: flex; align-items: center; gap: 5px; font-size: 11px; padding: 3px 10px; border-radius: 20px; background: rgba(107,79,42,0.08); border: 1px solid rgba(107,79,42,0.2); color: var(--accent); }
-  .search-tag-x { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer; padding: 0; line-height: 1; }
-  .highlight { background: rgba(107,79,42,0.15); border-radius: 2px; color: var(--accent); padding: 0 1px; }
-  @media (max-width: 700px) { .search-adv-grid { grid-template-columns: 1fr; } }
-
-
-  /* Folders */
-  .folder-section { padding: 12px 20px 8px; border-top: 1px solid var(--border); }
-  .folder-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .folder-section-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
-  .folder-add-btn { background: none; border: none; color: var(--text3); font-size: 18px; cursor: pointer; line-height: 1; padding: 0; transition: color 0.15s; }
-  .folder-add-btn:hover { color: var(--accent); }
-  .folder-item { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: var(--radius); cursor: pointer; transition: background 0.15s; margin-bottom: 2px; }
-  .folder-item:hover { background: var(--bg3); }
-  .folder-item.active { background: rgba(200,184,154,0.12); }
-  .folder-icon { font-size: 13px; flex-shrink: 0; }
-  .folder-name { font-size: 12px; color: var(--text2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .folder-item.active .folder-name { color: var(--accent); }
-  .folder-count { font-size: 10px; color: var(--text3); background: var(--bg3); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
-  .folder-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
-  .folder-item:hover .folder-actions { opacity: 1; }
-  .folder-action-btn { background: none; border: none; color: var(--text3); font-size: 11px; cursor: pointer; padding: 2px 4px; border-radius: 4px; line-height: 1; }
-  .folder-action-btn:hover { color: var(--text); background: var(--bg2); }
-
-  /* Modal */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: flex; align-items: center; justify-content: center; }
-  .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 24px; width: 340px; max-width: 90vw; }
-  .modal-title { font-family: var(--font-display); font-size: 18px; font-weight: 300; margin-bottom: 16px; color: var(--text); }
-  .modal-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-mono); font-size: 13px; padding: 9px 12px; outline: none; margin-bottom: 14px; }
-  .modal-input:focus { border-color: var(--border2); }
-  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-  .modal-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-mono); font-size: 13px; padding: 9px 12px; outline: none; margin-bottom: 14px; cursor: pointer; }
-  .modal-body { font-size: 13px; color: var(--text2); margin-bottom: 16px; line-height: 1.6; }
-
-  /* Record card actions */
-  .record-actions { display: flex; gap: 6px; align-items: center; }
-  .record-action-btn { background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text3); font-family: var(--font-mono); font-size: 11px; padding: 3px 9px; cursor: pointer; transition: all 0.15s; }
-  .record-action-btn:hover { color: var(--text); border-color: var(--border2); background: var(--bg3); }
-  .record-action-btn.danger:hover { color: var(--high); border-color: var(--high); background: rgba(224,122,95,0.08); }
-  .folder-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(26,95,138,0.08); color: var(--info); border: 1px solid rgba(26,95,138,0.2); }
-
-
-  /* Main tabs */
-  .main-tabs { display: flex; gap: 4px; margin-bottom: 28px; border-bottom: 1px solid var(--border2); padding-bottom: 0; }
+  /* Tabs */
+  .main-tabs { display: flex; gap: 4px; margin-bottom: 28px; border-bottom: 1px solid var(--border2); }
   .main-tab { padding: 9px 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--text3); border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font-mono); transition: all 0.15s; }
   .main-tab:hover { color: var(--text2); }
   .main-tab.active { color: var(--text); border-bottom-color: var(--accent); }
 
   /* News */
   .news-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .page-title { font-family: var(--font-display); font-size: 32px; font-weight: 300; color: var(--text); letter-spacing: -0.5px; line-height: 1.2; }
+  .page-title em { font-style: italic; color: var(--accent); }
+  .page-date { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .btn { padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border2); background: transparent; color: var(--text); font-family: var(--font-mono); font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .btn:hover { background: var(--bg3); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .news-group-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
   .news-group-tab { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: var(--font-mono); transition: all 0.15s; }
   .news-group-tab:hover { background: var(--bg3); color: var(--text); }
@@ -406,18 +61,28 @@
   .news-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
   .news-headline { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; flex: 1; }
   .news-meta { display: flex; gap: 8px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
-  .news-source { font-size: 11px; color: var(--text3); }
-  .news-time { font-size: 11px; color: var(--text3); }
-  .news-category-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
   .news-summary { font-size: 12px; color: var(--text2); line-height: 1.6; }
   .news-link { font-size: 11px; color: var(--info); text-decoration: none; margin-top: 6px; display: inline-block; }
   .news-link:hover { text-decoration: underline; }
   .news-empty { text-align: center; padding: 48px; color: var(--text3); font-size: 13px; background: var(--bg2); border: 1px dashed var(--border2); border-radius: var(--radius-lg); }
   .news-empty-big { font-family: var(--font-display); font-size: 20px; font-weight: 300; color: var(--text3); margin-bottom: 6px; }
   .news-last-updated { font-size: 11px; color: var(--text3); margin-bottom: 16px; }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(0,0,0,0.1); border-top-color: var(--info); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-
-  /* Intelligence Brief */
+  /* Brief */
+  .brief-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+  .brief-type-tabs { display: flex; gap: 4px; }
+  .brief-type-tab { font-size: 12px; padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: var(--font-mono); transition: all 0.15s; }
+  .brief-type-tab:hover { background: var(--bg3); color: var(--text); }
+  .brief-type-tab.active { background: var(--text); color: var(--bg2); border-color: var(--text); }
+  .brief-history-select { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text2); font-family: var(--font-mono); font-size: 12px; padding: 6px 12px; outline: none; cursor: pointer; max-width: 280px; }
+  .brief-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; padding: 12px 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .brief-meta-item { font-size: 11px; color: var(--text3); }
+  .brief-meta-item strong { color: var(--text2); }
+  .brief-overall { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 28px; }
+  .brief-overall-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .brief-overall-text { font-size: 14px; color: var(--text); line-height: 1.8; }
   .brief-section { margin-bottom: 32px; }
   .brief-section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--border2); }
   .brief-section-icon { width: 36px; height: 36px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
@@ -435,1011 +100,99 @@
   .brief-signal-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
   .brief-signal-val { font-family: var(--font-display); font-size: 15px; font-weight: 300; color: var(--text); }
   .brief-signal-desc { font-size: 11px; color: var(--text3); margin-top: 2px; line-height: 1.4; }
-  .brief-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; padding: 12px 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); }
-  .brief-meta-item { font-size: 11px; color: var(--text3); }
-  .brief-meta-item strong { color: var(--text2); }
   .brief-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
   .brief-empty { text-align: center; padding: 60px 20px; color: var(--text3); }
   .brief-empty-big { font-family: var(--font-display); font-size: 24px; font-weight: 300; color: var(--text3); margin-bottom: 8px; }
-  .brief-empty-sub { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
-  .brief-overall { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 28px; }
-  .brief-overall-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
-  .brief-overall-text { font-size: 14px; color: var(--text); line-height: 1.8; }
   .brief-risk { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
   .brief-risk-high { background: rgba(192,57,43,0.1); color: #c0392b; border: 1px solid rgba(192,57,43,0.25); }
   .brief-risk-medium { background: rgba(196,122,26,0.1); color: #c47a1a; border: 1px solid rgba(196,122,26,0.25); }
   .brief-risk-low { background: rgba(39,113,74,0.1); color: #27714a; border: 1px solid rgba(39,113,74,0.25); }
 
-
-  /* Brief nav */
-  .brief-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-  .brief-type-tabs { display: flex; gap: 4px; }
-  .brief-type-tab { font-size: 12px; padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: var(--font-mono); transition: all 0.15s; }
-  .brief-type-tab:hover { background: var(--bg3); color: var(--text); }
-  .brief-type-tab.active { background: var(--text); color: var(--bg2); border-color: var(--text); }
-  .brief-history-select { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text2); font-family: var(--font-mono); font-size: 12px; padding: 6px 12px; outline: none; cursor: pointer; max-width: 280px; }
-
-  @media (max-width: 900px) {
-    .sidebar { display: none; }
-    .metrics { grid-template-columns: repeat(2, 1fr); }
-    .input-grid { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 600px) {
+    .topbar { padding: 0 16px; }
     .main { padding: 20px 16px; }
-  }
-  @media (max-width: 560px) {
-    .metrics { grid-template-columns: 1fr 1fr; }
-    .input-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
-<div class="shell">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-label">China Bullpen<br/>Analysis Tool</div>
-      <div class="logo-sub">AI Dashboard</div>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Overview</div>
-      <div class="stat-mini"><span class="stat-mini-label">Total submissions</span><span class="stat-mini-val" id="sb-total">0</span></div>
-      <div class="stat-mini"><span class="stat-mini-label">Analyzed</span><span class="stat-mini-val" id="sb-analyzed">0</span></div>
-      <div class="stat-mini"><span class="stat-mini-label">Avg. priority score</span><span class="stat-mini-val" id="sb-avg">—</span></div>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Priority breakdown</div>
-      <div class="priority-bar">
-        <div class="pb-row">
-          <span class="pb-label" style="color:var(--high)">High</span>
-          <div class="pb-track"><div class="pb-fill" id="pb-high" style="background:var(--high);width:0%"></div></div>
-          <span class="pb-count" id="pb-high-n">0</span>
-        </div>
-        <div class="pb-row">
-          <span class="pb-label" style="color:var(--med)">Med</span>
-          <div class="pb-track"><div class="pb-fill" id="pb-med" style="background:var(--med);width:0%"></div></div>
-          <span class="pb-count" id="pb-med-n">0</span>
-        </div>
-        <div class="pb-row">
-          <span class="pb-label" style="color:var(--low)">Low</span>
-          <div class="pb-track"><div class="pb-fill" id="pb-low" style="background:var(--low);width:0%"></div></div>
-          <span class="pb-count" id="pb-low-n">0</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Similar groups</div>
-      <div id="sb-similar-list">
-        <div style="font-size:12px;color:var(--text3);padding:6px 0;">Run similarity check to detect patterns</div>
-      </div>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Categories</div>
-      <div class="cat-list" id="cat-list">
-        <div style="font-size:12px;color:var(--text3);padding:6px 0;">No data yet</div>
-      </div>
-    </div>
-
-    <div class="folder-section">
-      <div class="folder-section-header">
-        <span class="folder-section-label">Folders</span>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <button class="folder-action-btn" id="hide-foldered-btn" onclick="toggleHideFoldered()" title="Hide foldered items from main view" style="opacity:1;font-size:11px;padding:2px 7px;border:1px solid var(--border);border-radius:20px;color:var(--text3)">Hide filed</button>
-          <button class="folder-add-btn" onclick="openCreateFolder()" title="New folder">+</button>
-        </div>
-      </div>
-      <div id="folder-list">
-        <div style="font-size:12px;color:var(--text3);padding:4px 0;">No folders yet</div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Main -->
-  <main class="main">
-    <!-- Top nav tabs -->
-    <div class="main-tabs">
-      <button class="main-tab active" id="tab-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
-      <button class="main-tab" id="tab-news" onclick="switchTab('news')">Daily News Digest</button>
-      <button class="main-tab" id="tab-brief" onclick="switchTab('brief')">Intelligence Brief</button>
-    </div>
-
-    <!-- Dashboard view -->
-    <div id="view-dashboard">
-    <div class="page-header">
-      <div>
-        <div class="page-title">China Bullpen <em>Analysis Tool</em></div>
-        <div class="page-date" id="current-date"></div>
-      </div>
-      <div class="header-actions">
-        <button class="btn" onclick="analyzeAll()" id="analyze-all-btn">Analyze all</button>
-        <button class="btn" onclick="findSimilar()" id="similar-btn">Find similar</button>
-        <button class="btn" onclick="exportCSV()">Export CSV</button>
-        <button class="btn btn-primary" onclick="toggleInput()">+ New submission</button>
-      </div>
-    </div>
-
-    <!-- Metrics -->
-    <div class="metrics" style="grid-template-columns: repeat(5,1fr)">
-      <div class="metric-card m-total">
-        <div class="metric-label">Total submissions</div>
-        <div class="metric-val" id="m-total">0</div>
-        <div class="metric-sub">all time</div>
-      </div>
-      <div class="metric-card m-high">
-        <div class="metric-label">High priority</div>
-        <div class="metric-val" id="m-high">0</div>
-        <div class="metric-sub">needs immediate attention</div>
-      </div>
-      <div class="metric-card m-med">
-        <div class="metric-label">Medium priority</div>
-        <div class="metric-val" id="m-med">0</div>
-        <div class="metric-sub">review soon</div>
-      </div>
-      <div class="metric-card m-low">
-        <div class="metric-label">Low priority</div>
-        <div class="metric-val" id="m-low">0</div>
-        <div class="metric-sub">monitor &amp; track</div>
-      </div>
-      <div class="metric-card m-similar" style="cursor:pointer" onclick="findSimilar()">
-        <div class="metric-label">Similar groups</div>
-        <div class="metric-val" id="m-similar">—</div>
-        <div class="metric-sub">click to detect</div>
-      </div>
-    </div>
-
-    <!-- Input panel -->
-    <div class="input-panel" id="input-panel" style="display:none">
-      <div class="input-panel-title">New observation submission</div>
-      <div class="input-grid">
-        <div class="field">
-          <label>Date of submission</label>
-          <input type="date" id="f-date" />
-        </div>
-        <div class="field">
-          <label>Submitter name</label>
-          <input type="text" id="f-name" placeholder="Full name" />
-        </div>
-        <div class="field">
-          <label>Contact</label>
-          <input type="text" id="f-contact" placeholder="Email or phone" />
-        </div>
-        <div class="field full">
-          <label>Observation narrative</label>
-          <textarea id="f-narrative" placeholder="Describe the observation in detail..."></textarea>
-        </div>
-      </div>
-      <div class="input-actions">
-        <button class="btn" onclick="toggleInput()">Cancel</button>
-        <button class="btn btn-primary" onclick="submitAndAnalyze()" id="submit-btn">Submit &amp; analyze</button>
-      </div>
-    </div>
-
-    <!-- Similar submissions panel -->
-    <div class="similar-panel" id="similar-panel">
-      <div class="similar-panel-header">
-        <span class="similar-panel-title">Similar submission groups detected</span>
-        <button class="similar-close" onclick="closeSimilarPanel()">&#x2715;</button>
-      </div>
-      <div id="similar-clusters"></div>
-    </div>
-
-    <!-- Filter pills -->
-    <div class="filter-pills" id="filter-pills">
-      <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
-      <button class="filter-pill" onclick="setFilter('high', this)">High priority</button>
-      <button class="filter-pill" onclick="setFilter('medium', this)">Medium</button>
-      <button class="filter-pill" onclick="setFilter('low', this)">Low</button>
-      <button class="filter-pill" onclick="setFilter('similar', this)" id="pill-similar" style="display:none">Similar groups</button>
-      <button class="filter-pill" onclick="setFilter('unanalyzed', this)">Unanalyzed</button>
-    </div>
-
-    <!-- Keyword Search -->
-    <div class="search-panel" id="search-panel">
-      <div class="search-row">
-        <div class="search-main-wrap">
-          <span class="search-icon">&#9906;</span>
-          <input type="text" id="search-box" class="search-main" placeholder="Search by keyword, name, category, action..." oninput="onSearchInput()" onkeydown="onSearchKey(event)" autocomplete="off" />
-          <button class="search-clear" id="search-clear" onclick="clearSearch()" style="display:none">&#x2715;</button>
-        </div>
-        <button class="btn" onclick="toggleSearchAdvanced()" id="search-adv-btn">Filters</button>
-      </div>
-      <div class="search-advanced" id="search-advanced" style="display:none">
-        <div class="search-adv-grid">
-          <div class="search-field-group">
-            <label class="search-field-label">Search in</label>
-            <div class="search-checkboxes">
-              <label class="search-check"><input type="checkbox" id="sf-name" checked /> Name</label>
-              <label class="search-check"><input type="checkbox" id="sf-narrative" checked /> Narrative</label>
-              <label class="search-check"><input type="checkbox" id="sf-summary" checked /> AI summary</label>
-              <label class="search-check"><input type="checkbox" id="sf-category" checked /> Category</label>
-              <label class="search-check"><input type="checkbox" id="sf-action" checked /> Recommended action</label>
-              <label class="search-check"><input type="checkbox" id="sf-contact" /> Contact</label>
-            </div>
-          </div>
-          <div class="search-field-group">
-            <label class="search-field-label">Date range</label>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <input type="date" id="sf-date-from" class="search-date" onchange="renderRecords()" />
-              <span style="color:var(--text3);font-size:11px;">to</span>
-              <input type="date" id="sf-date-to" class="search-date" onchange="renderRecords()" />
-            </div>
-          </div>
-          <div class="search-field-group">
-            <label class="search-field-label">Sort by</label>
-            <select id="sf-sort" class="search-select" onchange="renderRecords()">
-              <option value="date-desc">Newest first</option>
-              <option value="date-asc">Oldest first</option>
-              <option value="priority-desc">Highest priority</option>
-              <option value="priority-asc">Lowest priority</option>
-              <option value="name-asc">Name A-Z</option>
-            </select>
-          </div>
-        </div>
-        <button class="search-reset-btn" onclick="resetSearch()">Reset all filters</button>
-      </div>
-      <div class="search-tags" id="search-tags"></div>
-    </div>
-
-    <!-- Records -->
-    <div class="records-header">
-      <div class="records-title">Submissions <span id="search-result-count" style="color:var(--text3);font-weight:400;margin-left:6px;"></span></div>
-    </div>
-
-    <div class="records-list" id="records-list">
-      <div class="empty-state">
-        <div class="empty-state-big">No submissions yet</div>
-        <div>Add a new submission above to get started</div>
-      </div>
-    </div>
-    </div><!-- end view-dashboard -->
-
-    <!-- News view -->
-    <div id="view-news" style="display:none">
-      <div class="news-header">
-        <div>
-          <div class="page-title">China Daily <em>Digest</em></div>
-          <div class="page-date" id="news-date-label"></div>
-        </div>
-        <div class="header-actions">
-          <button class="btn" onclick="refreshNews()" id="news-refresh-btn">Refresh news</button>
-        </div>
-      </div>
-      <div class="news-group-tabs">
-        <button class="news-group-tab active" onclick="setNewsGroup('all', this)">All</button>
-        <button class="news-group-tab" onclick="setNewsGroup('Politics', this)">Politics</button>
-        <button class="news-group-tab" onclick="setNewsGroup('Military', this)">Military</button>
-        <button class="news-group-tab" onclick="setNewsGroup('Technology', this)">Technology</button>
-        <button class="news-group-tab" onclick="setNewsGroup('Economy', this)">Economy</button>
-      </div>
-      <div id="news-loading" style="display:none" class="news-loading">
-        <div class="spinner" style="width:20px;height:20px;margin:0 auto 12px"></div>
-        <div style="color:var(--text3);font-size:13px;text-align:center">Fetching and analyzing today's China news...</div>
-      </div>
-      <div id="news-content"></div>
-    </div><!-- end view-news -->
-
-    <!-- Intelligence Brief view -->
-    <div id="view-brief" style="display:none">
-      <div class="news-header">
-        <div>
-          <div class="page-title">Intelligence <em>Brief</em></div>
-          <div class="page-date" id="brief-date-label"></div>
-        </div>
-        <div class="header-actions">
-          <button class="btn" onclick="generateBriefManual()" id="brief-refresh-btn">Generate now</button>
-          <button class="btn" onclick="exportBrief()">Export</button>
-        </div>
-      </div>
-
-      <!-- Brief type selector + history -->
-      <div class="brief-nav">
-        <div class="brief-type-tabs">
-          <button class="brief-type-tab active" id="btype-daily"   onclick="setBriefType('daily',this)">Daily</button>
-          <button class="brief-type-tab" id="btype-weekly"  onclick="setBriefType('weekly',this)">Weekly</button>
-          <button class="brief-type-tab" id="btype-monthly" onclick="setBriefType('monthly',this)">Monthly</button>
-          <button class="brief-type-tab" id="btype-yearly"  onclick="setBriefType('yearly',this)">Yearly</button>
-        </div>
-        <select class="brief-history-select" id="brief-history-select" onchange="loadBriefById(this.value)">
-          <option value="">Select a past brief...</option>
-        </select>
-      </div>
-
-      <div id="brief-loading" style="display:none" class="news-loading">
-        <div class="spinner" style="width:20px;height:20px;margin:0 auto 12px"></div>
-        <div style="color:var(--text3);font-size:13px;text-align:center" id="brief-loading-msg">Generating intelligence brief...</div>
-      </div>
-      <div id="brief-content"></div>
-    </div><!-- end view-brief -->
-  </main>
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-logo">China Bullpen</div>
+  <div class="topbar-links">
+    <a href="/submit.html" class="topbar-link primary">+ Submit observation</a>
+    <a href="/analyst.html" class="topbar-link">Analyst login</a>
+  </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="main">
+  <!-- Tabs -->
+  <div class="main-tabs">
+    <button class="main-tab active" id="tab-news"  onclick="switchTab('news')">Daily News Digest</button>
+    <button class="main-tab"        id="tab-brief" onclick="switchTab('brief')">Bullpen Brief</button>
+  </div>
+
+  <!-- News view -->
+  <div id="view-news">
+    <div class="news-header">
+      <div>
+        <div class="page-title">China Daily <em>Digest</em></div>
+        <div class="page-date" id="news-date-label"></div>
+      </div>
+      <div>
+        <button class="btn" onclick="refreshNews()" id="news-refresh-btn">Refresh news</button>
+      </div>
+    </div>
+    <div class="news-group-tabs">
+      <button class="news-group-tab active" onclick="setNewsGroup('all',this)">All</button>
+      <button class="news-group-tab" onclick="setNewsGroup('Politics',this)">Politics</button>
+      <button class="news-group-tab" onclick="setNewsGroup('Military',this)">Military</button>
+      <button class="news-group-tab" onclick="setNewsGroup('Technology',this)">Technology</button>
+      <button class="news-group-tab" onclick="setNewsGroup('Economy',this)">Economy</button>
+    </div>
+    <div id="news-loading" style="display:none" class="news-loading">
+      <div class="spinner"></div>
+      <div style="color:var(--text3);font-size:13px;text-align:center">Fetching today's China news...</div>
+    </div>
+    <div id="news-content"></div>
+  </div>
+
+  <!-- Brief view -->
+  <div id="view-brief" style="display:none">
+    <div class="news-header">
+      <div>
+        <div class="page-title">Bullpen <em>Brief</em></div>
+        <div class="page-date" id="brief-date-label"></div>
+      </div>
+    </div>
+    <div class="brief-nav">
+      <div class="brief-type-tabs">
+        <button class="brief-type-tab active" id="btype-daily"   onclick="setBriefType('daily',this)">Daily</button>
+        <button class="brief-type-tab"        id="btype-weekly"  onclick="setBriefType('weekly',this)">Weekly</button>
+        <button class="brief-type-tab"        id="btype-monthly" onclick="setBriefType('monthly',this)">Monthly</button>
+        <button class="brief-type-tab"        id="btype-yearly"  onclick="setBriefType('yearly',this)">Yearly</button>
+      </div>
+      <select class="brief-history-select" id="brief-history-select" onchange="loadBriefById(this.value)">
+        <option value="">Select a past brief...</option>
+      </select>
+    </div>
+    <div id="brief-loading" style="display:none" class="news-loading">
+      <div class="spinner"></div>
+      <div style="color:var(--text3);font-size:13px;text-align:center">Loading brief...</div>
+    </div>
+    <div id="brief-content"></div>
+  </div>
+</div>
 
 <script>
-  let submissions = [];
-  let activeFilter = 'all';
-  let similarGroups = [];
-  let highlightedIds = new Set();
-
-  // Sample data to demo
-  const SAMPLES = [
-    {
-      id: Date.now() - 300000,
-      date: '2025-03-18',
-      name: 'Sarah Mitchell',
-      contact: 'smitchell@example.com',
-      narrative: 'Observed unusual activity near the north warehouse entrance at approximately 11:45 PM. Three individuals were seen loading boxes into an unmarked white van. They did not appear to be on-shift staff and were not wearing company uniforms. The van left quickly without using the main gate.',
-      analysis: null
-    },
-    {
-      id: Date.now() - 200000,
-      date: '2025-03-19',
-      name: 'James Okafor',
-      contact: 'jokafor@example.com',
-      narrative: 'The drainage pipe on the east side of Building C has been leaking for about two weeks. Water pooling on the footpath creates a slip hazard, especially in the mornings. Maintenance has been notified once but no action taken yet.',
-      analysis: null
-    },
-    {
-      id: Date.now() - 100000,
-      date: '2025-03-20',
-      name: 'Priya Nair',
-      contact: '555-0134',
-      narrative: 'During today\'s shift briefing, a team member made several comments that others found offensive and exclusionary. This is the second incident involving the same individual. HR was not present. Two colleagues who witnessed it said they felt uncomfortable raising it officially.',
-      analysis: null
-    }
-  ];
-
-  async function init() {
-    document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-
-    // Load from Supabase
-    await dbLoad();
-
-    // If no submissions in DB yet, use samples
-    if (!submissions.length) {
-      submissions = SAMPLES;
-      submissions.forEach(s => dbSave(s));
-    }
-
-    // Restore similar state
-    highlightedIds = new Set(submissions.filter(s => s.similarGroupIndex != null).map(s => s.id));
-    const stored = localStorage.getItem('obs_similar');
-    if (stored) {
-      similarGroups = JSON.parse(stored);
-      if (similarGroups.length) {
-        document.getElementById('m-similar').textContent = similarGroups.length;
-        document.getElementById('pill-similar').style.display = '';
-        renderSimilarPanel();
-      }
-    }
-    renderAll();
-  }
-
-  function save(sub) {
-    if (sub) {
-      dbSave(sub);
-    } else {
-      submissions.forEach(s => dbSave(s));
-    }
-    localStorage.setItem('obs_similar', JSON.stringify(similarGroups));
-  }
-
-  function toggleInput() {
-    const p = document.getElementById('input-panel');
-    p.style.display = p.style.display === 'none' ? 'block' : 'none';
-  }
-
-  function setFilter(f, el) {
-    activeFilter = f;
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    renderRecords();
-  }
-
-  function showToast(msg, duration = 2500) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), duration);
-  }
-
-  // ✅ Replace this with your Vercel proxy URL after deploying
   const PROXY_URL = '/api/proxy';
-
-  // ── Database helpers ──────────────────────────────────────
-  async function dbLoad() {
-    try {
-      const res = await fetch(PROXY_URL, { method: 'GET' });
-      const rows = await res.json();
-      if (Array.isArray(rows)) {
-        submissions = rows.map(r => ({
-          id: r.id,
-          date: r.date,
-          name: r.name,
-          contact: r.contact,
-          narrative: r.narrative,
-          analysis: r.analysis || null,
-          similarGroupIndex: r.similar_group_index != null ? r.similar_group_index : null,
-          folderId: r.folder_id || null,
-          analyzing: false
-        }));
-      }
-    } catch(e) {
-      console.error('Failed to load submissions:', e);
-    }
-  }
-
-  async function dbSave(sub) {
-    try {
-      await fetch(PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'save',
-          payload: {
-            id: sub.id,
-            date: sub.date,
-            name: sub.name,
-            contact: sub.contact,
-            narrative: sub.narrative,
-            analysis: sub.analysis || null,
-            similar_group_index: sub.similarGroupIndex != null ? sub.similarGroupIndex : null,
-            folder_id: sub.folderId || null
-          }
-        })
-      });
-    } catch(e) {
-      console.error('Failed to save submission:', e);
-    }
-  }
-
-  async function analyzeSubmission(sub) {
-    const prompt = `You are an expert analyst reviewing an observation report. Analyze the following submission and respond ONLY with a valid JSON object (no markdown, no explanation).
-
-Submission:
-- Date: ${sub.date}
-- Submitter: ${sub.name}
-- Narrative: ${sub.narrative}
-
-Return JSON with exactly these fields:
-{
-  "priority": "High" | "Medium" | "Low",
-  "priority_score": <integer 1-10, 10 being most urgent>,
-  "category": <one short category label, e.g. "Security", "Safety", "HR/Conduct", "Maintenance", "Environmental", "Operations", "Other">,
-  "summary": <1-2 sentence plain-language summary of what happened and why it matters>,
-  "recommended_action": <one concrete recommended next step>,
-  "sentiment": "Urgent" | "Concerned" | "Informational" | "Neutral"
-}`;
-
-    const response = await fetch(PROXY_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'analyze',
-        payload: {
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }]
-        }
-      })
-    });
-
-    if (!response.ok) throw new Error('API error ' + response.status);
-    const data = await response.json();
-    const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
-    return JSON.parse(text);
-  }
-
-  async function submitAndAnalyze() {
-    const date = document.getElementById('f-date').value;
-    const name = document.getElementById('f-name').value.trim();
-    const narrative = document.getElementById('f-narrative').value.trim();
-    const contact = document.getElementById('f-contact').value.trim();
-
-    if (!date || !name || !narrative) { showToast('Please fill in date, name, and narrative.'); return; }
-
-    const sub = { id: Date.now(), date, name, contact, narrative, analysis: null, analyzing: true };
-    submissions.unshift(sub);
-    renderAll();
-    toggleInput();
-
-    document.getElementById('f-name').value = '';
-    document.getElementById('f-narrative').value = '';
-    document.getElementById('f-contact').value = '';
-
-    try {
-      sub.analysis = await analyzeSubmission(sub);
-    } catch(e) {
-      sub.analysis = null;
-      showToast('Analysis failed — you can retry later.');
-    }
-    sub.analyzing = false;
-    save(sub);
-    renderAll();
-    showToast('Submission analyzed.');
-  }
-
-  async function analyzeAll() {
-    const unanalyzed = submissions.filter(s => !s.analysis && !s.analyzing);
-    if (!unanalyzed.length) { showToast('All submissions are already analyzed.'); return; }
-
-    const btn = document.getElementById('analyze-all-btn');
-    btn.disabled = true;
-    btn.textContent = 'Analyzing...';
-
-    for (const sub of unanalyzed) {
-      sub.analyzing = true;
-      renderAll();
-      try {
-        sub.analysis = await analyzeSubmission(sub);
-      } catch(e) {
-        sub.analysis = null;
-      }
-      sub.analyzing = false;
-      save(sub);
-      renderAll();
-    }
-
-    btn.disabled = false;
-    btn.textContent = 'Analyze all';
-    showToast('All submissions analyzed.');
-  }
-
-  async function findSimilar() {
-    if (submissions.length < 2) { showToast('Need at least 2 submissions to compare.'); return; }
-    const btn = document.getElementById('similar-btn');
-    btn.disabled = true;
-    btn.textContent = 'Detecting...';
-
-    const items = submissions.map(s => ({
-      id: s.id,
-      name: s.name,
-      date: s.date,
-      narrative: s.narrative,
-      category: s.analysis?.category || 'Unknown',
-      summary: s.analysis?.summary || ''
-    }));
-
-    const prompt = `You are an expert analyst. Review the following observation submissions and identify groups of submissions that are meaningfully similar — same type of incident, same location, same pattern of behavior, or the same underlying issue reported by different people.
-
-Submissions:
-${items.map((s, i) => `[${i}] ID:${s.id} | ${s.date} | ${s.name} | Category: ${s.category}\nNarrative: ${s.narrative}`).join('\n\n')}
-
-Respond ONLY with a valid JSON array (no markdown, no explanation). Each element represents a group of similar submissions:
-[
-  {
-    "theme": <short label for what links them, e.g. "Warehouse security breach", "Building C drainage issue">,
-    "reason": <1 sentence explaining why these are related>,
-    "ids": [<array of submission IDs that belong to this group>]
-  }
-]
-
-Only include groups with 2 or more submissions. If no meaningful similarities exist, return an empty array [].`;
-
-    try {
-      const response = await fetch(PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'analyze',
-          payload: {
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 1000,
-            messages: [{ role: 'user', content: prompt }]
-          }
-        })
-      });
-      if (!response.ok) throw new Error('API error');
-      const data = await response.json();
-      const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
-      similarGroups = JSON.parse(text);
-    } catch(e) {
-      showToast('Similarity detection failed. Please try again.');
-      btn.disabled = false;
-      btn.textContent = 'Find similar';
-      return;
-    }
-
-    highlightedIds = new Set(similarGroups.flatMap(g => g.ids));
-
-    // Tag each submission with its group index
-    submissions.forEach(s => { s.similarGroupIndex = null; });
-    similarGroups.forEach((g, gi) => {
-      g.ids.forEach(id => {
-        const s = submissions.find(x => x.id === id);
-        if (s) s.similarGroupIndex = gi;
-      });
-    });
-    save();
-
-    const count = similarGroups.length;
-    document.getElementById('m-similar').textContent = count;
-    document.getElementById('m-similar').closest('.metric-card').querySelector('.metric-sub').textContent = count ? `${count} pattern${count>1?'s':''} found` : 'no patterns found';
-
-    document.getElementById('pill-similar').style.display = count ? '' : 'none';
-
-    renderSimilarPanel();
-    renderAll();
-
-    btn.disabled = false;
-    btn.textContent = 'Find similar';
-    if (count) showToast(`Found ${count} similar group${count>1?'s':''}.`);
-    else showToast('No similar submissions detected.');
-  }
-
-  function renderSimilarPanel() {
-    const panel = document.getElementById('similar-panel');
-    if (!similarGroups.length) { panel.classList.remove('visible'); return; }
-    panel.classList.add('visible');
-
-    const colors = ['var(--accent2)', 'var(--info)', 'var(--med)', 'var(--high)', 'var(--accent)'];
-    document.getElementById('similar-clusters').innerHTML = similarGroups.map((g, gi) => {
-      const color = colors[gi % colors.length];
-      const members = g.ids.map(id => submissions.find(s => s.id === id)).filter(Boolean);
-      return `<div class="cluster-group">
-        ${gi > 0 ? '<hr class="cluster-divider" />' : ''}
-        <div class="cluster-header">
-          <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
-          <span class="cluster-theme">${g.theme}</span>
-          <span class="cluster-count">${members.length} submissions</span>
-        </div>
-        <div class="cluster-reason">${g.reason}</div>
-        <div class="cluster-items">
-          ${members.map(s => `
-            <div class="cluster-item" onclick="scrollToRecord(${s.id})">
-              <div class="cluster-dot" style="background:${color}"></div>
-              <div style="min-width:0">
-                <div class="cluster-item-name">${s.name} &mdash; <span style="font-weight:400;color:var(--text3)">${s.date}</span></div>
-                <div class="cluster-item-snippet">${s.narrative}</div>
-              </div>
-            </div>`).join('')}
-        </div>
-      </div>`;
-    }).join('');
-
-    // Update sidebar
-    const sbList = document.getElementById('sb-similar-list');
-    sbList.innerHTML = similarGroups.length ? similarGroups.map((g, gi) => {
-      const color = colors[gi % colors.length];
-      return `<div class="cat-item" onclick="scrollToGroup(${gi})" style="gap:8px">
-        <div style="display:flex;align-items:center;gap:6px;min-width:0">
-          <div style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></div>
-          <span class="cat-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.theme}</span>
-        </div>
-        <span class="cat-count">${g.ids.length}</span>
-      </div>`;
-    }).join('') : '<div style="font-size:12px;color:var(--text3);padding:6px 0;">No groups found</div>';
-  }
-
-  function closeSimilarPanel() {
-    document.getElementById('similar-panel').classList.remove('visible');
-  }
-
-  function scrollToRecord(id) {
-    const el = document.getElementById('rec-' + id);
-    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlighted'); setTimeout(() => el.classList.remove('highlighted'), 1800); }
-    else {
-      setFilter('all', document.querySelector('.filter-pill'));
-      setTimeout(() => {
-        const el2 = document.getElementById('rec-' + id);
-        if (el2) { el2.scrollIntoView({ behavior: 'smooth', block: 'center' }); el2.classList.add('highlighted'); setTimeout(() => el2.classList.remove('highlighted'), 1800); }
-      }, 200);
-    }
-  }
-
-  function scrollToGroup(gi) {
-    document.getElementById('similar-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  function renderAll() {
-    updateMetrics();
-    updateSidebar();
-    renderFolders();
-    applyHideFolderedBtn();
-    renderRecords();
-  }
-
-  function updateMetrics() {
-    const analyzed = submissions.filter(s => s.analysis);
-    const high = analyzed.filter(s => s.analysis.priority === 'High').length;
-    const med = analyzed.filter(s => s.analysis.priority === 'Medium').length;
-    const low = analyzed.filter(s => s.analysis.priority === 'Low').length;
-
-    document.getElementById('m-total').textContent = submissions.length;
-    document.getElementById('m-high').textContent = high;
-    document.getElementById('m-med').textContent = med;
-    document.getElementById('m-low').textContent = low;
-  }
-
-  function updateSidebar() {
-    const analyzed = submissions.filter(s => s.analysis);
-    const total = submissions.length;
-    const high = analyzed.filter(s => s.analysis.priority === 'High').length;
-    const med = analyzed.filter(s => s.analysis.priority === 'Medium').length;
-    const low = analyzed.filter(s => s.analysis.priority === 'Low').length;
-    const scores = analyzed.map(s => s.analysis.priority_score);
-    const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '—';
-
-    document.getElementById('sb-total').textContent = total;
-    document.getElementById('sb-analyzed').textContent = analyzed.length;
-    document.getElementById('sb-avg').textContent = avg;
-
-    const pct = n => analyzed.length ? Math.round(n / analyzed.length * 100) + '%' : '0%';
-    document.getElementById('pb-high').style.width = pct(high);
-    document.getElementById('pb-med').style.width = pct(med);
-    document.getElementById('pb-low').style.width = pct(low);
-    document.getElementById('pb-high-n').textContent = high;
-    document.getElementById('pb-med-n').textContent = med;
-    document.getElementById('pb-low-n').textContent = low;
-
-    // Categories
-    const cats = {};
-    analyzed.forEach(s => { const c = s.analysis.category; cats[c] = (cats[c]||0)+1; });
-    const sorted = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
-    const catList = document.getElementById('cat-list');
-    if (!sorted.length) {
-      catList.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:6px 0;">No data yet</div>';
-    } else {
-      catList.innerHTML = sorted.map(([cat, n]) =>
-        `<div class="cat-item" onclick="filterByCategory('${cat}')">
-          <span class="cat-name">${cat}</span>
-          <span class="cat-count">${n}</span>
-        </div>`
-      ).join('');
-    }
-  }
-
-  function filterByCategory(cat) {
-    activeFilter = 'cat:' + cat;
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-    renderRecords();
-  }
-
-
-  function onSearchInput() {
-    const val = document.getElementById('search-box').value;
-    document.getElementById('search-clear').style.display = val ? 'block' : 'none';
-    renderRecords();
-  }
-
-  function onSearchKey(e) {
-    if (e.key === 'Escape') clearSearch();
-  }
-
-  function clearSearch() {
-    document.getElementById('search-box').value = '';
-    document.getElementById('search-clear').style.display = 'none';
-    renderRecords();
-  }
-
-  function toggleSearchAdvanced() {
-    const adv = document.getElementById('search-advanced');
-    const btn = document.getElementById('search-adv-btn');
-    const visible = adv.style.display !== 'none';
-    adv.style.display = visible ? 'none' : 'block';
-    btn.textContent = visible ? 'Filters' : 'Hide filters';
-  }
-
-  function resetSearch() {
-    document.getElementById('search-box').value = '';
-    document.getElementById('search-clear').style.display = 'none';
-    document.getElementById('sf-date-from').value = '';
-    document.getElementById('sf-date-to').value = '';
-    document.getElementById('sf-sort').value = 'date-desc';
-    ['sf-name','sf-narrative','sf-summary','sf-category','sf-action'].forEach(id => {
-      document.getElementById(id).checked = true;
-    });
-    document.getElementById('sf-contact').checked = false;
-    renderRecords();
-  }
-
-  function highlight(text, query) {
-    if (!query) return text;
-    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return text.replace(new RegExp('(' + escaped + ')', 'gi'), '<span class="highlight">$1</span>');
-  }
-
-  function getActiveKeywords() {
-    return document.getElementById('search-box').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  }
-
-  function matchesKeywords(sub, keywords) {
-    if (!keywords.length) return true;
-    const fields = [];
-    if (document.getElementById('sf-name').checked) fields.push((sub.name||'').toLowerCase());
-    if (document.getElementById('sf-narrative').checked) fields.push((sub.narrative||'').toLowerCase());
-    if (document.getElementById('sf-summary').checked) fields.push((sub.analysis?.summary||'').toLowerCase());
-    if (document.getElementById('sf-category').checked) fields.push((sub.analysis?.category||'').toLowerCase());
-    if (document.getElementById('sf-action').checked) fields.push((sub.analysis?.recommended_action||'').toLowerCase());
-    if (document.getElementById('sf-contact').checked) fields.push((sub.contact||'').toLowerCase());
-    const combined = fields.join(' ');
-    return keywords.every(kw => combined.includes(kw));
-  }
-
-  function updateSearchTags(keywords) {
-    const container = document.getElementById('search-tags');
-    const dateFrom = document.getElementById('sf-date-from').value;
-    const dateTo = document.getElementById('sf-date-to').value;
-    const tags = [];
-    keywords.forEach(kw => tags.push({ label: kw, type: 'kw' }));
-    if (dateFrom) tags.push({ label: 'From: ' + dateFrom, type: 'date-from' });
-    if (dateTo) tags.push({ label: 'To: ' + dateTo, type: 'date-to' });
-    container.innerHTML = tags.map(t =>
-      `<span class="search-tag">${t.label}<button class="search-tag-x" onclick="removeTag('${t.type}','${t.label}')">&#x2715;</button></span>`
-    ).join('');
-  }
-
-  function removeTag(type, label) {
-    if (type === 'kw') {
-      const box = document.getElementById('search-box');
-      box.value = box.value.replace(new RegExp('\\b' + label + '\\b', 'i'), '').trim();
-      document.getElementById('search-clear').style.display = box.value ? 'block' : 'none';
-    } else if (type === 'date-from') document.getElementById('sf-date-from').value = '';
-    else if (type === 'date-to') document.getElementById('sf-date-to').value = '';
-    renderRecords();
-  }
-
-  function renderRecords() {
-    const keywords = getActiveKeywords();
-    const dateFrom = document.getElementById('sf-date-from').value;
-    const dateTo = document.getElementById('sf-date-to').value;
-    const sortBy = document.getElementById('sf-sort').value;
-    const searchQuery = document.getElementById('search-box').value.trim();
-
-    updateSearchTags(keywords);
-
-    let list = [...submissions];
-
-    // Priority / category filter
-    if (activeFilter === 'high') list = list.filter(s => s.analysis?.priority === 'High');
-    else if (activeFilter === 'medium') list = list.filter(s => s.analysis?.priority === 'Medium');
-    else if (activeFilter === 'low') list = list.filter(s => s.analysis?.priority === 'Low');
-    else if (activeFilter === 'unanalyzed') list = list.filter(s => !s.analysis && !s.analyzing);
-    else if (activeFilter === 'similar') list = list.filter(s => highlightedIds.has(s.id));
-    else if (activeFilter.startsWith('cat:')) {
-      const cat = activeFilter.replace('cat:', '');
-      list = list.filter(s => s.analysis?.category === cat);
-    }
-
-    // Folder filter
-    if (activeFolderFilter) {
-      list = list.filter(s => s.folderId === activeFolderFilter);
-    } else if (hideFoldered) {
-      // Hide submissions that have been filed into a folder
-      list = list.filter(s => !s.folderId);
-    }
-
-    // Keyword filter
-    if (keywords.length) list = list.filter(s => matchesKeywords(s, keywords));
-
-    // Date range filter
-    if (dateFrom) list = list.filter(s => s.date >= dateFrom);
-    if (dateTo) list = list.filter(s => s.date <= dateTo);
-
-    // Sort
-    const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
-    if (sortBy === 'date-desc') list.sort((a, b) => b.date.localeCompare(a.date));
-    else if (sortBy === 'date-asc') list.sort((a, b) => a.date.localeCompare(b.date));
-    else if (sortBy === 'priority-desc') list.sort((a, b) => (priorityOrder[b.analysis?.priority]||0) - (priorityOrder[a.analysis?.priority]||0));
-    else if (sortBy === 'priority-asc') list.sort((a, b) => (priorityOrder[a.analysis?.priority]||0) - (priorityOrder[b.analysis?.priority]||0));
-    else if (sortBy === 'name-asc') list.sort((a, b) => a.name.localeCompare(b.name));
-
-    // Result count
-    const countEl = document.getElementById('search-result-count');
-    const hasFilters = keywords.length || dateFrom || dateTo || activeFilter !== 'all';
-    countEl.textContent = hasFilters ? `(${list.length} of ${submissions.length})` : `(${submissions.length})`;
-
-    const container = document.getElementById('records-list');
-    if (!list.length) {
-      container.innerHTML = `<div class="empty-state"><div class="empty-state-big">No results</div><div>Try adjusting your keyword or filters</div></div>`;
-      return;
-    }
-
-    const groupColors = ['var(--accent2)', 'var(--info)', 'var(--med)', 'var(--high)', 'var(--accent)'];
-    const hlQuery = searchQuery;
-
-    container.innerHTML = list.map(sub => {
-      const a = sub.analysis;
-      const priorityBadge = a ? `<span class="badge badge-${a.priority.toLowerCase()}">${a.priority}</span>` : '';
-      const catBadge = a ? `<span class="badge badge-cat">${a.category}</span>` : '';
-      const analyzingBadge = sub.analyzing ? `<span class="badge badge-analyzing"><span class="spinner"></span>Analyzing</span>` : '';
-
-      const gi = sub.similarGroupIndex;
-      const groupColor = gi != null ? groupColors[gi % groupColors.length] : null;
-      const similarBadge = gi != null ? `<span class="badge badge-similar" style="border-color:${groupColor};color:${groupColor}">Similar group ${gi+1}</span>` : '';
-      const groupBorder = gi != null ? `border-left: 3px solid ${groupColor};` : '';
-
-      const hlName = highlight(sub.name, hlQuery);
-      const hlNarrative = highlight(sub.narrative, hlQuery);
-      const hlSummary = a ? highlight(a.summary, hlQuery) : '';
-      const hlAction = a ? highlight(a.recommended_action, hlQuery) : '';
-
-      const summaryBlock = a ? `
-        <div class="record-summary">
-          <div class="record-summary-label">AI Summary</div>
-          ${hlSummary}
-        </div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">
-          <span style="color:var(--accent2)">Recommended action:</span> ${hlAction}
-        </div>` : '';
-
-      const score = a ? `<span class="record-score">Priority score: <span class="score-val">${a.priority_score}/10</span></span>` : '<span></span>';
-      const sentiment = a ? `<span class="badge badge-cat" style="font-size:10px">${a.sentiment}</span>` : '';
-
-      const folderName = sub.folderId ? folders.find(f => f.id === sub.folderId)?.name : null;
-      const folderBadge = folderName ? `<span class="folder-badge">&#128193; ${folderName}</span>` : '';
-
-      return `<div class="record-card" id="rec-${sub.id}" style="${groupBorder}">
-        <div class="record-top">
-          <div class="record-meta">
-            <span class="record-name">${hlName}</span>
-            <span class="record-date">${sub.date}</span>
-          </div>
-          <div class="badges">${analyzingBadge}${priorityBadge}${catBadge}${sentiment}${similarBadge}${folderBadge}</div>
-        </div>
-        <div class="record-narrative">${hlNarrative}</div>
-        ${summaryBlock}
-        <div class="record-footer">
-          ${score}
-          <div class="record-actions">
-            ${sub.contact ? `<span class="record-contact">${sub.contact}</span>` : ''}
-            ${!a && !sub.analyzing ? `<button class="record-action-btn" onclick="reanalyze(${sub.id})">Analyze</button>` : ''}
-            ${folders.length ? `<button class="record-action-btn" onclick="openMoveSubmission(${sub.id})">&#128193; Move</button>` : ''}
-            <button class="record-action-btn danger" onclick="openDeleteSubmission(${sub.id})">Delete</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  async function reanalyze(id) {
-    const sub = submissions.find(s => s.id === id);
-    if (!sub) return;
-    sub.analyzing = true;
-    renderAll();
-    try {
-      sub.analysis = await analyzeSubmission(sub);
-    } catch(e) {
-      showToast('Analysis failed.');
-    }
-    sub.analyzing = false;
-    save(sub);
-    renderAll();
-  }
-
-  function exportCSV() {
-    if (!submissions.length) { showToast('No data to export.'); return; }
-    const headers = ['Date', 'Name', 'Contact', 'Narrative', 'Priority', 'Score', 'Category', 'Summary', 'Recommended Action', 'Sentiment'];
-    const rows = submissions.map(s => {
-      const a = s.analysis || {};
-      return [
-        s.date, s.name, s.contact,
-        '"' + (s.narrative||'').replace(/"/g,'""') + '"',
-        a.priority||'', a.priority_score||'', a.category||'',
-        '"' + (a.summary||'').replace(/"/g,'""') + '"',
-        '"' + (a.recommended_action||'').replace(/"/g,'""') + '"',
-        a.sentiment||''
-      ];
-    });
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'observation_analysis_' + new Date().toISOString().split('T')[0] + '.csv';
-    a.click();
-    showToast('CSV exported.');
-  }
-
-
-
-  // ── News Digest ───────────────────────────────────────────
-  let newsDigest = null;
-  let activeNewsGroup = 'all';
   const NEWS_CACHE_KEY = 'china_news_digest';
+  let activeNewsGroup = 'all';
+  let activeBriefType = 'daily';
+  let allBriefs = [];
+  let currentBrief = null;
+  let newsDigest = null;
+
   const GROUP_COLORS = {
     Politics:   { dot: '#c0392b', badge: 'rgba(192,57,43,0.1)',  text: '#c0392b', border: 'rgba(192,57,43,0.25)' },
     Military:   { dot: '#6b2d2d', badge: 'rgba(107,45,45,0.1)',  text: '#6b2d2d', border: 'rgba(107,45,45,0.25)' },
@@ -1447,17 +200,23 @@ Only include groups with 2 or more submissions. If no meaningful similarities ex
     Economy:    { dot: '#2d6a4f', badge: 'rgba(45,106,79,0.1)',  text: '#2d6a4f', border: 'rgba(45,106,79,0.25)' },
   };
 
+  const BRIEF_THEMES = [
+    { key: 'economy',    label: 'Economy',                icon: '&#9650;', color: '#2d6a4f', bg: 'rgba(45,106,79,0.08)',  desc: 'Trade, growth, financial systems & markets' },
+    { key: 'regional',   label: 'Regional Goals',         icon: '&#9670;', color: '#1a5f8a', bg: 'rgba(26,95,138,0.08)',  desc: 'Territorial ambitions, diplomacy & influence' },
+    { key: 'military',   label: 'Military Growth',        icon: '&#9632;', color: '#c0392b', bg: 'rgba(192,57,43,0.08)',  desc: 'PLA expansion, weapons & strategic posture' },
+    { key: 'technology', label: 'Technology Development', icon: '&#9711;', color: '#6b4f2a', bg: 'rgba(107,79,42,0.08)', desc: 'Innovation, semiconductors, AI & cyber' },
+  ];
+
   function switchTab(tab) {
-    document.getElementById('view-dashboard').style.display = tab === 'dashboard' ? 'block' : 'none';
-    document.getElementById('view-news').style.display = tab === 'news' ? 'block' : 'none';
+    document.getElementById('view-news').style.display  = tab === 'news'  ? 'block' : 'none';
     document.getElementById('view-brief').style.display = tab === 'brief' ? 'block' : 'none';
-    document.getElementById('tab-dashboard').classList.toggle('active', tab === 'dashboard');
-    document.getElementById('tab-news').classList.toggle('active', tab === 'news');
+    document.getElementById('tab-news').classList.toggle('active',  tab === 'news');
     document.getElementById('tab-brief').classList.toggle('active', tab === 'brief');
-    if (tab === 'news') initNews();
+    if (tab === 'news')  initNews();
     if (tab === 'brief') initBrief();
   }
 
+  // ── News ────────────────────────────────────────────────────
   function setNewsGroup(group, el) {
     activeNewsGroup = group;
     document.querySelectorAll('.news-group-tab').forEach(t => t.classList.remove('active'));
@@ -1468,11 +227,8 @@ Only include groups with 2 or more submissions. If no meaningful similarities ex
   async function initNews() {
     const today = new Date().toISOString().split('T')[0];
     const cached = JSON.parse(localStorage.getItem(NEWS_CACHE_KEY) || 'null');
-    if (cached && cached.date === today) {
-      newsDigest = cached;
-      renderNewsContent();
-      return;
-    }
+    document.getElementById('news-date-label').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    if (cached && cached.date === today) { newsDigest = cached; renderNewsContent(); return; }
     await fetchNews();
   }
 
@@ -1486,144 +242,59 @@ Only include groups with 2 or more submissions. If no meaningful similarities ex
     document.getElementById('news-loading').style.display = 'block';
     document.getElementById('news-content').innerHTML = '';
     document.getElementById('news-refresh-btn').disabled = true;
-
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    document.getElementById('news-date-label').textContent = today;
-
-    const prompt = `Today is ${today}. You are a China analyst. Search for and summarize today's most important news stories about China across four categories: Politics, Military, Technology, and Economy.
-
-For each category, provide 4-6 of the most significant stories from today or the last 24 hours.
-
-Respond ONLY with a valid JSON object (no markdown, no explanation):
-{
-  "date": "${new Date().toISOString().split('T')[0]}",
-  "generated": "${new Date().toISOString()}",
-  "categories": {
-    "Politics": [
-      {
-        "headline": "Short punchy headline",
-        "summary": "1-2 sentence summary of what happened and why it matters.",
-        "source": "Source name e.g. Reuters",
-        "url": "https://full-url-to-the-article.com/article",
-        "significance": "High" | "Medium" | "Low"
-      }
-    ],
-    "Military": [...],
-    "Technology": [...],
-    "Economy": [...]
-  }
-}
-
-Focus on factual, significant developments. Cover Taiwan, US-China relations, CCP leadership, PLA activities, tech companies, trade, and economic data where relevant today.`;
-
+    const prompt = `Today is ${today}. You are a China analyst. Search for and summarize today's most important news stories about China across four categories: Politics, Military, Technology, and Economy. For each category, provide 4-6 of the most significant stories from today or the last 24 hours. Respond ONLY with valid JSON: { "date": "${new Date().toISOString().split('T')[0]}", "generated": "${new Date().toISOString()}", "categories": { "Politics": [{ "headline": "...", "summary": "1-2 sentence summary.", "source": "Source name", "url": "https://...", "significance": "High|Medium|Low" }], "Military": [...], "Technology": [...], "Economy": [...] } }`;
     try {
       const response = await fetch(PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'analyze',
-          payload: {
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 4000,
-            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-            messages: [{ role: 'user', content: prompt }]
-          }
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'analyze', payload: { model: 'claude-sonnet-4-20250514', max_tokens: 4000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: prompt }] } })
       });
-
-      if (!response.ok) throw new Error('API error ' + response.status);
+      if (!response.ok) throw new Error('API error');
       const data = await response.json();
-
-      // Extract JSON from response (may be in text block after tool use)
       let jsonText = null;
-      if (data.content) {
-        for (const block of data.content) {
-          if (block.type === 'text' && block.text) {
-            const cleaned = block.text.trim().replace(/```json|```/g, '').trim();
-            try { JSON.parse(cleaned); jsonText = cleaned; break; } catch(e) {}
-            // Try finding JSON object inside the text
-            const match = cleaned.match(/\{[\s\S]*\}/);
-            if (match) { try { JSON.parse(match[0]); jsonText = match[0]; break; } catch(e) {} }
-          }
+      for (const block of (data.content || [])) {
+        if (block.type === 'text' && block.text) {
+          const cleaned = block.text.trim().replace(/```json|```/g, '').trim();
+          try { JSON.parse(cleaned); jsonText = cleaned; break; } catch(e) {}
+          const match = cleaned.match(/\{[\s\S]*\}/);
+          if (match) { try { JSON.parse(match[0]); jsonText = match[0]; break; } catch(e) {} }
         }
       }
-
       if (!jsonText) throw new Error('No valid JSON in response');
       newsDigest = JSON.parse(jsonText);
       newsDigest.date = new Date().toISOString().split('T')[0];
       localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(newsDigest));
       renderNewsContent();
-
     } catch(e) {
       document.getElementById('news-content').innerHTML = `<div class="news-empty"><div class="news-empty-big">Could not load news</div><div>${e.message}</div></div>`;
     }
-
     document.getElementById('news-loading').style.display = 'none';
     document.getElementById('news-refresh-btn').disabled = false;
   }
 
   function renderNewsContent() {
     if (!newsDigest) return;
-    const container = document.getElementById('news-content');
     const groups = ['Politics', 'Military', 'Technology', 'Economy'];
     const toShow = activeNewsGroup === 'all' ? groups : [activeNewsGroup];
-
     const generated = newsDigest.generated ? new Date(newsDigest.generated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
     let html = generated ? `<div class="news-last-updated">Last updated at ${generated}</div>` : '';
-
     for (const group of toShow) {
       const items = newsDigest.categories?.[group] || [];
       const colors = GROUP_COLORS[group];
-      html += `<div class="news-group-section">
-        <div class="news-group-title">
-          <div class="news-group-dot" style="background:${colors.dot}"></div>
-          <span class="news-group-name">${group}</span>
-          <span class="news-group-count">${items.length} stories</span>
-        </div>
-        <div class="news-cards">`;
-
-      if (!items.length) {
-        html += `<div style="font-size:12px;color:var(--text3);padding:8px 0;">No stories found for this category today.</div>`;
-      } else {
+      html += `<div class="news-group-section"><div class="news-group-title"><div class="news-group-dot" style="background:${colors.dot}"></div><span class="news-group-name">${group}</span><span class="news-group-count">${items.length} stories</span></div><div class="news-cards">`;
+      if (!items.length) { html += `<div style="font-size:12px;color:var(--text3);padding:8px 0;">No stories found.</div>`; }
+      else {
         for (const item of items) {
           const sigColor = item.significance === 'High' ? 'var(--high)' : item.significance === 'Medium' ? 'var(--med)' : 'var(--text3)';
-          html += `<div class="news-card">
-            <div class="news-card-top">
-              <div class="news-headline">${item.headline}</div>
-              <div class="news-meta">
-                ${item.significance ? `<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${colors.badge};color:${colors.text};border:1px solid ${colors.border};font-weight:500;text-transform:uppercase;letter-spacing:0.04em">${group}</span>` : ''}
-                ${item.significance ? `<span style="font-size:11px;color:${sigColor};font-weight:500">${item.significance}</span>` : ''}
-              </div>
-            </div>
-            <div class="news-summary">${item.summary}</div>
-            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
-              ${item.url
-                ? `<a class="news-link" href="${item.url}" target="_blank" rel="noopener noreferrer">${item.source || 'Read article'} &#8599;</a>`
-                : item.source ? `<span style="font-size:11px;color:var(--text3)">${item.source}</span>` : ''}
-            </div>
-          </div>`;
+          html += `<div class="news-card"><div class="news-card-top"><div class="news-headline">${item.headline}</div><div class="news-meta"><span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${colors.badge};color:${colors.text};border:1px solid ${colors.border};font-weight:500;text-transform:uppercase;letter-spacing:0.04em">${group}</span>${item.significance ? `<span style="font-size:11px;color:${sigColor};font-weight:500">${item.significance}</span>` : ''}</div></div><div class="news-summary">${item.summary}</div><div style="margin-top:8px">${item.url ? `<a class="news-link" href="${item.url}" target="_blank" rel="noopener noreferrer">${item.source || 'Read article'} &#8599;</a>` : item.source ? `<span style="font-size:11px;color:var(--text3)">${item.source}</span>` : ''}</div></div>`;
         }
       }
       html += `</div></div>`;
     }
-
-    container.innerHTML = html;
+    document.getElementById('news-content').innerHTML = html;
   }
 
-
-  // ── Intelligence Brief ────────────────────────────────────
-  const BRIEF_CACHE_KEY = 'china_intel_brief';
-  let currentBrief = null;
-  let activeBriefType = 'daily';
-  let allBriefs = [];
-
-  const BRIEF_THEMES = [
-    { key: 'economy',    label: 'Economy',                icon: '&#9650;', color: '#2d6a4f', bg: 'rgba(45,106,79,0.08)',   desc: 'Trade, growth, financial systems & markets' },
-    { key: 'regional',   label: 'Regional Goals',         icon: '&#9670;', color: '#1a5f8a', bg: 'rgba(26,95,138,0.08)',   desc: 'Territorial ambitions, diplomacy & influence' },
-    { key: 'military',   label: 'Military Growth',        icon: '&#9632;', color: '#c0392b', bg: 'rgba(192,57,43,0.08)',   desc: 'PLA expansion, weapons & strategic posture' },
-    { key: 'technology', label: 'Technology Development', icon: '&#9711;', color: '#6b4f2a', bg: 'rgba(107,79,42,0.08)',   desc: 'Innovation, semiconductors, AI & cyber' },
-  ];
-
+  // ── Brief ───────────────────────────────────────────────────
   async function initBrief() {
     document.getElementById('brief-date-label').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     await loadBriefs(activeBriefType);
@@ -1639,22 +310,14 @@ Focus on factual, significant developments. Cover Taiwan, US-China relations, CC
   async function loadBriefs(type) {
     document.getElementById('brief-loading').style.display = 'block';
     document.getElementById('brief-content').innerHTML = '';
-
     try {
-      const res = await fetch(`${PROXY_URL}?action=listBriefs&type=${type}`, { method: 'GET' });
+      const res = await fetch(`${PROXY_URL}?action=listBriefs&type=${type}`);
       const data = await res.json();
       allBriefs = Array.isArray(data) ? data : [];
-    } catch(e) {
-      allBriefs = [];
-    }
-
+    } catch(e) { allBriefs = []; }
     document.getElementById('brief-loading').style.display = 'none';
-
-    // Populate history dropdown
     const sel = document.getElementById('brief-history-select');
-    sel.innerHTML = '<option value="">Select a past brief...</option>' +
-      allBriefs.map(b => `<option value="${b.id}">${b.period_label}</option>`).join('');
-
+    sel.innerHTML = '<option value="">Select a past brief...</option>' + allBriefs.map(b => `<option value="${b.id}">${b.period_label}</option>`).join('');
     if (allBriefs.length) {
       currentBrief = allBriefs[0].content;
       currentBrief._period_label = allBriefs[0].period_label;
@@ -1662,47 +325,15 @@ Focus on factual, significant developments. Cover Taiwan, US-China relations, CC
       sel.value = allBriefs[0].id;
       renderBrief();
     } else {
-      document.getElementById('brief-content').innerHTML = `
-        <div class="brief-empty">
-          <div class="brief-empty-big">No ${type} briefs yet</div>
-          <div class="brief-empty-sub">Briefs auto-generate on schedule. Click "Generate now" to create one immediately.</div>
-          <button class="btn btn-primary" onclick="generateBriefManual()">Generate now</button>
-        </div>`;
+      document.getElementById('brief-content').innerHTML = `<div class="brief-empty"><div class="brief-empty-big">No ${type} briefs available yet</div><div style="font-size:13px;color:var(--text3);margin-top:8px">Briefs are generated automatically on a daily, weekly, monthly, and yearly schedule.</div></div>`;
     }
   }
 
-  async function loadBriefById(id) {
+  function loadBriefById(id) {
     if (!id) return;
     const b = allBriefs.find(x => x.id === id);
-    if (b) {
-      currentBrief = b.content;
-      currentBrief._period_label = b.period_label;
-      currentBrief._type = b.type;
-      renderBrief();
-    }
+    if (b) { currentBrief = b.content; currentBrief._period_label = b.period_label; currentBrief._type = b.type; renderBrief(); }
   }
-
-  async function generateBriefManual() {
-    document.getElementById('brief-loading').style.display = 'block';
-    document.getElementById('brief-loading-msg').textContent = 'Generating ' + activeBriefType + ' brief...';
-    document.getElementById('brief-content').innerHTML = '';
-    document.getElementById('brief-refresh-btn').disabled = true;
-
-    try {
-      const res = await fetch(`/api/generate-brief?type=${activeBriefType}`, { method: 'GET' });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Generation failed');
-      showToast(`${activeBriefType.charAt(0).toUpperCase() + activeBriefType.slice(1)} brief generated.`);
-      await loadBriefs(activeBriefType);
-    } catch(e) {
-      document.getElementById('brief-content').innerHTML = `<div class="brief-empty"><div class="brief-empty-big">Generation failed</div><div>${e.message}</div></div>`;
-    }
-
-    document.getElementById('brief-loading').style.display = 'none';
-    document.getElementById('brief-refresh-btn').disabled = false;
-  }
-
-  async function refreshBrief() { await generateBriefManual(); }
 
   function renderBrief() {
     if (!currentBrief) return;
@@ -1711,316 +342,25 @@ Focus on factual, significant developments. Cover Taiwan, US-China relations, CC
     const directionArrow = d => d === 'Rising' ? '&#8679;' : d === 'Falling' ? '&#8681;' : d === 'Stable' ? '&#8596;' : '&#63;';
     const directionColor = d => d === 'Rising' ? '#c0392b' : d === 'Falling' ? '#2d6a4f' : d === 'Stable' ? '#1a5f8a' : '#8a8784';
     const gen = b.generated ? new Date(b.generated).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-
     let html = '';
-
-    // Period label banner
-    if (b._period_label) {
-      html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-        <span style="font-size:11px;padding:3px 12px;border-radius:20px;background:var(--bg3);color:var(--text3);text-transform:uppercase;letter-spacing:0.08em">${(b._type||activeBriefType).toUpperCase()} BRIEF</span>
-        <span style="font-size:13px;color:var(--text2)">${b._period_label}</span>
-      </div>`;
-    }
-
-    // Meta bar
-    html += `<div class="brief-meta">
-      ${gen ? `<div class="brief-meta-item"><strong>Generated:</strong> ${gen}</div>` : ''}
-      <div class="brief-meta-item"><strong>News-driven analysis</strong></div>
-      <div class="brief-meta-item"><strong>Field submissions:</strong> ${b.source_count?.submissions ?? '—'} (${b.source_count?.high_priority_submissions ?? 0} high priority)</div>
-      <div class="brief-meta-item"><strong>Overall risk:</strong> <span class="brief-risk ${riskClass(b.overall_risk)}">${b.overall_risk || '—'}</span></div>
-    </div>`;
-
-    // Overall assessment
-    if (b.overall_assessment) {
-      html += `<div class="brief-overall">
-        <div class="brief-overall-title">Executive assessment</div>
-        <div class="brief-overall-text">${b.overall_assessment}</div>
-      </div>`;
-    }
-
-    // Four themes
+    if (b._period_label) html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><span style="font-size:11px;padding:3px 12px;border-radius:20px;background:var(--bg3);color:var(--text3);text-transform:uppercase;letter-spacing:0.08em">${(b._type||activeBriefType).toUpperCase()} BRIEF</span><span style="font-size:13px;color:var(--text2)">${b._period_label}</span></div>`;
+    html += `<div class="brief-meta">${gen ? `<div class="brief-meta-item"><strong>Generated:</strong> ${gen}</div>` : ''}<div class="brief-meta-item"><strong>Overall risk:</strong> <span class="brief-risk ${riskClass(b.overall_risk)}">${b.overall_risk||'—'}</span></div></div>`;
+    if (b.overall_assessment) html += `<div class="brief-overall"><div class="brief-overall-title">Executive assessment</div><div class="brief-overall-text">${b.overall_assessment}</div></div>`;
     for (const theme of BRIEF_THEMES) {
       const t = b.themes?.[theme.key];
       if (!t) continue;
-      html += `<div class="brief-section">
-        <div class="brief-section-header">
-          <div class="brief-section-icon" style="background:${theme.bg};color:${theme.color}">${theme.icon}</div>
-          <div>
-            <div class="brief-section-title">${theme.label}</div>
-            <div class="brief-section-sub">${theme.desc}</div>
-          </div>
-          <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-            <span class="brief-risk ${riskClass(t.risk)}">${t.risk} risk</span>
-          </div>
-        </div>`;
+      html += `<div class="brief-section"><div class="brief-section-header"><div class="brief-section-icon" style="background:${theme.bg};color:${theme.color}">${theme.icon}</div><div><div class="brief-section-title">${theme.label}</div><div class="brief-section-sub">${theme.desc}</div></div><div style="margin-left:auto"><span class="brief-risk ${riskClass(t.risk)}">${t.risk} risk</span></div></div>`;
       if (t.tldr) html += `<div class="brief-tldr">${t.tldr}</div>`;
       if (t.analysis) html += `<div class="brief-body">${t.analysis}</div>`;
-      if (t.trends?.length) {
-        html += `<div class="brief-trends">`;
-        for (const tr of t.trends) {
-          const color = directionColor(tr.direction);
-          html += `<div class="brief-trend">
-            <div class="brief-trend-dot" style="background:${color}"></div>
-            <div>
-              <div class="brief-trend-label" style="color:${color}">${tr.label} <span style="font-weight:400">${directionArrow(tr.direction)} ${tr.direction||''}</span></div>
-              <div class="brief-trend-text">${tr.text}</div>
-            </div>
-          </div>`;
-        }
-        html += `</div>`;
-      }
-      if (t.signals?.length) {
-        html += `<div class="brief-signals">`;
-        for (const sig of t.signals) {
-          html += `<div class="brief-signal">
-            <div class="brief-signal-label">${sig.label}</div>
-            <div class="brief-signal-val">${sig.value}</div>
-            <div class="brief-signal-desc">${sig.desc}</div>
-          </div>`;
-        }
-        html += `</div>`;
-      }
-      if (t.field_corroboration) {
-        html += `<div style="margin-top:10px;padding:10px 14px;background:rgba(26,95,138,0.06);border-left:2px solid var(--info);border-radius:0 var(--radius) var(--radius) 0;font-size:12px;color:var(--text2)">
-          <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--info);display:block;margin-bottom:3px">Field corroboration</span>
-          ${t.field_corroboration}
-        </div>`;
-      }
+      if (t.trends?.length) { html += `<div class="brief-trends">`; for (const tr of t.trends) { const c = directionColor(tr.direction); html += `<div class="brief-trend"><div class="brief-trend-dot" style="background:${c}"></div><div><div class="brief-trend-label" style="color:${c}">${tr.label} <span style="font-weight:400">${directionArrow(tr.direction)} ${tr.direction||''}</span></div><div class="brief-trend-text">${tr.text}</div></div></div>`; } html += `</div>`; }
+      if (t.signals?.length) { html += `<div class="brief-signals">`; for (const s of t.signals) { html += `<div class="brief-signal"><div class="brief-signal-label">${s.label}</div><div class="brief-signal-val">${s.value}</div><div class="brief-signal-desc">${s.desc}</div></div>`; } html += `</div>`; }
       html += `</div><hr class="brief-divider">`;
     }
-
     document.getElementById('brief-content').innerHTML = html;
   }
 
-  function exportBrief() {
-    if (!currentBrief) { showToast('No brief to export. Generate one first.'); return; }
-    const b = currentBrief;
-    const lines = [
-      'CHINA BULLPEN INTELLIGENCE BRIEF',
-      '=================================',
-      `Period: ${b._period_label || ''}`,
-      `Type: ${(b._type || activeBriefType).toUpperCase()}`,
-      `Generated: ${b.generated ? new Date(b.generated).toLocaleString() : 'Unknown'}`,
-      `Overall Risk: ${b.overall_risk || '—'}`,
-      '', 'EXECUTIVE ASSESSMENT', b.overall_assessment || '', '',
-    ];
-    for (const theme of BRIEF_THEMES) {
-      const t = b.themes?.[theme.key];
-      if (!t) continue;
-      lines.push('', theme.label.toUpperCase(), '-'.repeat(theme.label.length));
-      if (t.tldr) lines.push('Bottom line: ' + t.tldr);
-      if (t.analysis) lines.push('', t.analysis);
-      if (t.trends?.length) { lines.push('', 'Key Trends:'); t.trends.forEach(tr => lines.push(`  - [${tr.direction}] ${tr.label}: ${tr.text}`)); }
-      if (t.signals?.length) { lines.push('', 'Key Signals:'); t.signals.forEach(s => lines.push(`  - ${s.label}: ${s.value} — ${s.desc}`)); }
-      lines.push(`Risk Level: ${t.risk}`);
-    }
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `china_bullpen_${b._type || activeBriefType}_brief_${(b._period_label||'').replace(/[^a-z0-9]/gi,'_').toLowerCase()}.txt`;
-    a.click();
-    showToast('Brief exported.');
-  }
-
-  // ── Folder state ─────────────────────────────────────────
-  let folders = JSON.parse(localStorage.getItem('obs_folders') || '[]');
-  let hideFoldered = localStorage.getItem('obs_hide_foldered') === 'true';
-  let activeFolderFilter = null;
-  let modalMode = null;
-  let modalTargetId = null;
-
-  function saveFolders() {
-    localStorage.setItem('obs_folders', JSON.stringify(folders));
-  }
-
-  function toggleHideFoldered() {
-    hideFoldered = !hideFoldered;
-    localStorage.setItem('obs_hide_foldered', hideFoldered);
-    const btn = document.getElementById('hide-foldered-btn');
-    if (btn) {
-      btn.textContent = hideFoldered ? 'Show filed' : 'Hide filed';
-      btn.style.color = hideFoldered ? 'var(--accent)' : 'var(--text3)';
-      btn.style.borderColor = hideFoldered ? 'var(--accent)' : 'var(--border)';
-    }
-    renderRecords();
-  }
-
-  function applyHideFolderedBtn() {
-    const btn = document.getElementById('hide-foldered-btn');
-    if (btn) {
-      btn.textContent = hideFoldered ? 'Show filed' : 'Hide filed';
-      btn.style.color = hideFoldered ? 'var(--accent)' : 'var(--text3)';
-      btn.style.borderColor = hideFoldered ? 'var(--accent)' : 'var(--border)';
-    }
-  }
-
-  function renderFolders() {
-    const list = document.getElementById('folder-list');
-    if (!folders.length) {
-      list.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0;">No folders yet</div>';
-      return;
-    }
-    list.innerHTML = folders.map(f => {
-      const count = submissions.filter(s => s.folderId === f.id).length;
-      const isActive = activeFolderFilter === f.id;
-      return `<div class="folder-item ${isActive ? 'active' : ''}" onclick="filterByFolder('${f.id}')">
-        <span class="folder-icon">${f.icon || '&#128193;'}</span>
-        <span class="folder-name">${f.name}</span>
-        <span class="folder-count">${count}</span>
-        <div class="folder-actions" onclick="event.stopPropagation()">
-          <button class="folder-action-btn" onclick="openRenameFolder('${f.id}')" title="Rename">&#9998;</button>
-          <button class="folder-action-btn" onclick="openDeleteFolder('${f.id}')" title="Delete" style="color:var(--high)">&#x2715;</button>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  function filterByFolder(folderId) {
-    if (activeFolderFilter === folderId) {
-      activeFolderFilter = null;
-    } else {
-      activeFolderFilter = folderId;
-      activeFilter = 'all';
-      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-      document.querySelector('.filter-pill').classList.add('active');
-    }
-    renderFolders();
-    renderRecords();
-  }
-
-  // ── Modal ─────────────────────────────────────────────────
-  function openModal({ title, body, inputVal, inputPlaceholder, selectOptions, confirmLabel, mode, targetId }) {
-    modalMode = mode;
-    modalTargetId = targetId || null;
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-body').style.display = body ? 'block' : 'none';
-    document.getElementById('modal-body').textContent = body || '';
-    const inp = document.getElementById('modal-input');
-    const sel = document.getElementById('modal-select');
-    if (inputVal !== undefined) {
-      inp.style.display = 'block';
-      inp.value = inputVal || '';
-      inp.placeholder = inputPlaceholder || '';
-      sel.style.display = 'none';
-      setTimeout(() => inp.focus(), 50);
-    } else if (selectOptions) {
-      sel.style.display = 'block';
-      sel.innerHTML = selectOptions.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
-      inp.style.display = 'none';
-    } else {
-      inp.style.display = 'none';
-      sel.style.display = 'none';
-    }
-    document.getElementById('modal-confirm-btn').textContent = confirmLabel || 'OK';
-    document.getElementById('modal-overlay').style.display = 'flex';
-  }
-
-  function closeModal(e) {
-    if (e && e.target !== document.getElementById('modal-overlay')) return;
-    document.getElementById('modal-overlay').style.display = 'none';
-    modalMode = null;
-    modalTargetId = null;
-  }
-
-  function modalConfirm() {
-    const inp = document.getElementById('modal-input').value.trim();
-    const sel = document.getElementById('modal-select').value;
-
-    if (modalMode === 'create-folder') {
-      if (!inp) { showToast('Please enter a folder name.'); return; }
-      const folder = { id: Date.now().toString(), name: inp, icon: '&#128193;' };
-      folders.push(folder);
-      saveFolders();
-      renderFolders();
-      showToast('Folder created.');
-    }
-    else if (modalMode === 'rename-folder') {
-      if (!inp) { showToast('Please enter a folder name.'); return; }
-      const f = folders.find(x => x.id === modalTargetId);
-      if (f) { f.name = inp; saveFolders(); renderFolders(); showToast('Folder renamed.'); }
-    }
-    else if (modalMode === 'delete-folder') {
-      folders = folders.filter(x => x.id !== modalTargetId);
-      submissions.forEach(s => { if (s.folderId === modalTargetId) { s.folderId = null; save(s); } });
-      if (activeFolderFilter === modalTargetId) activeFolderFilter = null;
-      saveFolders();
-      renderAll();
-      showToast('Folder deleted.');
-    }
-    else if (modalMode === 'move-submission') {
-      const sub = submissions.find(s => s.id == modalTargetId);
-      if (sub) {
-        sub.folderId = sel === 'none' ? null : sel;
-        save(sub);
-        renderAll();
-        showToast(sel === 'none' ? 'Removed from folder.' : 'Moved to folder.');
-      }
-    }
-    else if (modalMode === 'delete-submission') {
-      submissions = submissions.filter(s => s.id != modalTargetId);
-      dbDelete(modalTargetId);
-      renderAll();
-      showToast('Submission deleted.');
-    }
-
-    document.getElementById('modal-overlay').style.display = 'none';
-    modalMode = null;
-    modalTargetId = null;
-  }
-
-  function openCreateFolder() {
-    openModal({ title: 'New folder', inputVal: '', inputPlaceholder: 'Folder name...', confirmLabel: 'Create', mode: 'create-folder' });
-  }
-
-  function openRenameFolder(id) {
-    const f = folders.find(x => x.id === id);
-    openModal({ title: 'Rename folder', inputVal: f?.name || '', inputPlaceholder: 'Folder name...', confirmLabel: 'Rename', mode: 'rename-folder', targetId: id });
-  }
-
-  function openDeleteFolder(id) {
-    const f = folders.find(x => x.id === id);
-    const count = submissions.filter(s => s.folderId === id).length;
-    openModal({ title: 'Delete folder', body: `Delete "${f?.name}"? ${count > 0 ? count + ' submission(s) will be moved back to All.' : ''}`, confirmLabel: 'Delete', mode: 'delete-folder', targetId: id });
-  }
-
-  function openMoveSubmission(id) {
-    const sub = submissions.find(s => s.id == id);
-    const options = [{ value: 'none', label: '— No folder (All submissions)' }, ...folders.map(f => ({ value: f.id, label: f.name }))];
-    openModal({ title: 'Move to folder', selectOptions: options, confirmLabel: 'Move', mode: 'move-submission', targetId: id });
-    if (sub?.folderId) document.getElementById('modal-select').value = sub.folderId;
-  }
-
-  function openDeleteSubmission(id) {
-    const sub = submissions.find(s => s.id == id);
-    openModal({ title: 'Delete submission', body: `Permanently delete the submission from ${sub?.name} on ${sub?.date}? This cannot be undone.`, confirmLabel: 'Delete', mode: 'delete-submission', targetId: id });
-  }
-
-  async function dbDelete(id) {
-    try {
-      await fetch(PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', payload: { id } })
-      });
-    } catch(e) { console.error('Delete failed', e); }
-  }
-
-  init();
+  // Init
+  initNews();
 </script>
-
-<!-- Modal -->
-<div class="modal-overlay" id="modal-overlay" style="display:none" onclick="closeModal(event)">
-  <div class="modal" id="modal-box">
-    <div class="modal-title" id="modal-title">New folder</div>
-    <div class="modal-body" id="modal-body" style="display:none"></div>
-    <input type="text" class="modal-input" id="modal-input" placeholder="Folder name..." style="display:none" onkeydown="if(event.key==='Enter')modalConfirm()" />
-    <select class="modal-select" id="modal-select" style="display:none"></select>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" id="modal-confirm-btn" onclick="modalConfirm()">Create</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
