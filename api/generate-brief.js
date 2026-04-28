@@ -97,7 +97,8 @@ INSTRUCTIONS:
 4. ONLY AFTER building the news-driven analysis, check whether any field submissions corroborate, contradict, or add texture to specific news topics. If they do, note it. If they don't, say nothing — do not force a connection.
 5. The overall_assessment should be a complete picture of what the news shows. Field submissions may add a sentence of nuance but must not displace news-driven conclusions.
 6. ${briefType !== 'daily' ? 'Emphasize trajectory and change over time.' : 'Focus on what is most significant today.'}
-7. ECONOMIC INDICATORS SECTION: Search specifically for the latest values of: China GDP growth, NBS and Caixin PMI (manufacturing and services), export/import data, USD/CNY exchange rate, CPI, PPI, urban and youth unemployment, FDI flows, property market data (Evergrande, Country Garden, new home prices), local government debt, and any alternative indicators like electricity consumption or freight volumes. Use the most recent data available — prioritize official NBS releases, PBOC statements, and reputable financial sources like Bloomberg, Reuters, and Caixin. This section should read like a Bloomberg economic dashboard, not a news summary.
+7. TECHNOLOGY SECTION: Cover a BROAD range of technology domains — semiconductors, space & aerospace, 5G/6G telecommunications, quantum computing, biotechnology & genomics, green/clean energy technology (solar, EVs, batteries), nuclear technology, robotics & manufacturing automation, cybersecurity & hacking, undersea cables, and dual-use military-civilian technologies. AI is just ONE of many domains and should NOT dominate the technology section. Aim for at least 4-5 different technology domains per brief.
+8. ECONOMIC INDICATORS SECTION: Search specifically for the latest values of: China GDP growth, NBS and Caixin PMI (manufacturing and services), export/import data, USD/CNY exchange rate, CPI, PPI, urban and youth unemployment, FDI flows, property market data (Evergrande, Country Garden, new home prices), local government debt, and any alternative indicators like electricity consumption or freight volumes. Use the most recent data available — prioritize official NBS releases, PBOC statements, and reputable financial sources like Bloomberg, Reuters, and Caixin. This section should read like a Bloomberg economic dashboard, not a news summary.
 
 Respond ONLY with valid JSON:
 {
@@ -116,7 +117,7 @@ Respond ONLY with valid JSON:
     },
     "regional": { "tldr": "...", "analysis": "...", "trends": [...], "signals": [...], "risk": "...", "field_corroboration": "..." },
     "military":  { "tldr": "...", "analysis": "...", "trends": [...], "signals": [...], "risk": "...", "field_corroboration": "..." },
-    "technology":{ "tldr": "...", "analysis": "...", "trends": [...], "signals": [...], "risk": "...", "field_corroboration": "..." }
+    "technology":{ "tldr": "One sentence bottom line on China's BROAD technology development across multiple sectors — not just AI.", "analysis": "4-5 sentences covering a wide range of technology domains: semiconductors, space, telecom (5G/6G), quantum computing, biotech, green energy tech, nuclear, robotics, cyber, and dual-use tech. AI may be mentioned but should not dominate.", "trends": [ { "label": "...", "text": "...", "direction": "Rising|Falling|Stable|Uncertain" } ], "signals": [ { "label": "...", "value": "...", "desc": "..." } ], "risk": "...", "field_corroboration": "..." }
   },
   "economic_indicators": {
     "search_date": "${now.toISOString().split('T')[0]}",
