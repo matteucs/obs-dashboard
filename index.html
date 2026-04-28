@@ -656,7 +656,9 @@
     document.getElementById('news-content').innerHTML = '';
     document.getElementById('news-refresh-btn').disabled = true;
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const prompt = `Today is ${today}. You are a China analyst. Search for and summarize today's most important news stories about China across four categories: Politics, Military, Technology, and Economy. For each category, provide 4-6 of the most significant stories from today or the last 24 hours. Respond ONLY with valid JSON: { "date": "${new Date().toISOString().split('T')[0]}", "generated": "${new Date().toISOString()}", "categories": { "Politics": [{ "headline": "...", "summary": "1-2 sentence summary.", "source": "Source name", "url": "https://...", "significance": "High|Medium|Low" }], "Military": [...], "Technology": [...], "Economy": [...] } }`;
+    const prompt = `Today is ${today}. You are a China analyst. Search for and summarize today's most important news stories about China across four categories: Politics, Military, Technology, and Economy. For each category, provide 4-6 of the most significant stories from today or the last 24 hours.
+
+For the Technology category: cover a BROAD range of technology domains — do NOT focus primarily on AI. Include stories across semiconductors & chip manufacturing, space & aerospace, 5G/6G telecom, quantum computing, biotechnology & genomics, green energy tech (solar, EVs, batteries), nuclear technology, robotics & automation, cybersecurity, undersea cables, and dual-use military-civilian tech. AI may appear as one story but should not dominate. Respond ONLY with valid JSON: { "date": "${new Date().toISOString().split('T')[0]}", "generated": "${new Date().toISOString()}", "categories": { "Politics": [{ "headline": "...", "summary": "1-2 sentence summary.", "source": "Source name", "url": "https://...", "significance": "High|Medium|Low" }], "Military": [...], "Technology": [...], "Economy": [...] } }`;
     try {
       const response = await fetch(PROXY_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
