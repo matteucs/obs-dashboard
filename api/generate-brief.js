@@ -80,8 +80,23 @@ ${lowPriority.length ? lowPriority.map(fmtSub).join('\n') : '  None'}
 
 You have two source categories with DIFFERENT analytical weights:
 
-SOURCE A - OPEN SOURCE NEWS [PRIMARY WEIGHT - 70-80% of analysis]
-Use your web search tool to find today's most significant China news across Economy, Regional Goals, Military, and Technology. This is your primary analytical foundation. Draw on Reuters, AP, Bloomberg, WSJ, FT, SCMP, Nikkei Asia, Defense News. Find 5-8 stories per theme. News drives the analysis.
+SOURCE A - OPEN SOURCE NEWS & THINK TANK ANALYSIS [PRIMARY WEIGHT - 70-80% of analysis]
+Use your web search tool to gather from TWO layers of sources:
+
+LAYER 1 — DAILY NEWS (search for today's and this week's reporting):
+Reuters, AP, Bloomberg, WSJ, Financial Times, South China Morning Post, Nikkei Asia, Defense News, Caixin Global. Find 4-6 current news stories per theme.
+
+LAYER 2 — THINK TANK & POLICY RESEARCH (search for publications from the past month):
+Systematically search each of the following for recent China-related analysis, reports, and commentary:
+- Pacific Forum (pacforum.org) — Indo-Pacific security, alliances, nuclear issues
+- Center for Strategic and International Studies (csis.org) — defense, technology, economy, Taiwan
+- Hudson Institute (hudsoninstitute.org) — China strategy, military, technology competition
+- Wilson Center (wilsoncenter.org) — policy analysis, diplomacy, China-US relations
+- Congressional Research Service (crs.congress.gov) — policy briefings for Congress on China
+
+Search each source explicitly. For example: search "csis.org China [theme] 2025" or "Hudson Institute China military 2025". Extract key findings, assessments, and policy recommendations from any publications found in the past 30 days.
+
+Integrate think tank findings into the analysis alongside news — they provide deeper context, trend analysis, and expert assessment that daily news cannot. Where think tanks and daily news converge on a theme, that convergence is a strong analytical signal. Where they diverge, note it.
 
 SOURCE B - FIELD SUBMISSIONS [CORROBORATING WEIGHT - 20-30% of analysis]
 These are firsthand observation reports. They do not drive the analysis alone. Where they corroborate, contradict, or add texture to the news picture, call that out explicitly. High priority submissions carry more weight.
@@ -91,14 +106,22 @@ ${subContext}
 ${historicalContext ? `HISTORICAL BRIEF CONTEXT:\n${historicalContext}` : ''}
 
 INSTRUCTIONS:
-1. Search the web first for today's China news across all four themes. Collect ALL significant stories regardless of whether field submissions exist for that topic.
-2. Every news story that matters should appear in the brief — do NOT skip or downweight a news topic simply because there are no field submissions related to it.
-3. Build the full analysis from open source news. The absence of field submissions on a topic is not a reason to omit it.
-4. ONLY AFTER building the news-driven analysis, check whether any field submissions corroborate, contradict, or add texture to specific news topics. If they do, note it. If they don't, say nothing — do not force a connection.
-5. The overall_assessment should be a complete picture of what the news shows. Field submissions may add a sentence of nuance but must not displace news-driven conclusions.
-6. ${briefType !== 'daily' ? 'Emphasize trajectory and change over time.' : 'Focus on what is most significant today.'}
-7. TECHNOLOGY SECTION: Cover a BROAD range of technology domains — semiconductors, space & aerospace, 5G/6G telecommunications, quantum computing, biotechnology & genomics, green/clean energy technology (solar, EVs, batteries), nuclear technology, robotics & manufacturing automation, cybersecurity & hacking, undersea cables, and dual-use military-civilian technologies. AI is just ONE of many domains and should NOT dominate the technology section. Aim for at least 4-5 different technology domains per brief.
-8. ECONOMIC INDICATORS SECTION: Search specifically for the latest values of: China GDP growth, NBS and Caixin PMI (manufacturing and services), export/import data, USD/CNY exchange rate, CPI, PPI, urban and youth unemployment, FDI flows, property market data (Evergrande, Country Garden, new home prices), local government debt, and any alternative indicators like electricity consumption or freight volumes. Use the most recent data available — prioritize official NBS releases, PBOC statements, and reputable financial sources like Bloomberg, Reuters, and Caixin. This section should read like a Bloomberg economic dashboard, not a news summary.
+1. SEARCH DAILY NEWS first — find today's and this week's most significant China stories across Economy, Regional Goals, Military, and Technology from major news outlets.
+2. SEARCH THINK TANKS — explicitly search each of these five sources for China publications from the past 30 days:
+   a. site:csis.org China (search for recent reports and commentary)
+   b. site:pacforum.org China (search for recent publications)
+   c. site:hudsoninstitute.org China (search for recent analysis)
+   d. site:wilsoncenter.org China (search for recent publications)
+   e. site:crs.congress.gov China (search for recent CRS reports)
+   Fetch and read any relevant publications you find. Extract their key findings and integrate them.
+3. Collect ALL significant stories and analysis regardless of whether field submissions exist for that topic.
+4. Build the full analysis from BOTH news AND think tank sources. Think tank analysis adds depth, historical context, and expert assessment. Weight recent think tank reports heavily — they represent considered expert opinion, not just breaking news.
+5. Where think tanks and daily news CONVERGE on a theme, flag it as a strong signal. Where they DIVERGE, note the disagreement and explain why.
+6. ONLY AFTER building this analysis, check whether field submissions corroborate, contradict, or add texture. Note it where relevant. Do not force connections.
+7. The overall_assessment should reflect the composite picture from news + think tank analysis + field submissions.
+8. ${briefType !== 'daily' ? 'Emphasize trajectory and change over time. Look for think tank trend analyses that span longer periods.' : 'Focus on what is most significant today, enriched by any relevant think tank context from the past month.'}
+9. TECHNOLOGY SECTION: Cover a BROAD range of technology domains — semiconductors, space & aerospace, 5G/6G telecommunications, quantum computing, biotechnology & genomics, green/clean energy technology (solar, EVs, batteries), nuclear technology, robotics & manufacturing automation, cybersecurity & hacking, undersea cables, and dual-use military-civilian technologies. AI is just ONE of many domains and should NOT dominate the technology section. Aim for at least 4-5 different technology domains per brief.
+10. ECONOMIC INDICATORS SECTION: Search specifically for the latest values of: China GDP growth, NBS and Caixin PMI (manufacturing and services), export/import data, USD/CNY exchange rate, CPI, PPI, urban and youth unemployment, FDI flows, property market data (Evergrande, Country Garden, new home prices), local government debt, and any alternative indicators like electricity consumption or freight volumes. Use the most recent data available — prioritize official NBS releases, PBOC statements, and reputable financial sources like Bloomberg, Reuters, and Caixin. This section should read like a Bloomberg economic dashboard, not a news summary.
 
 Respond ONLY with valid JSON:
 {
@@ -186,6 +209,15 @@ Respond ONLY with valid JSON:
     "overall_assessment": "High|Medium-High|Medium|Medium-Low|Low",
     "overall_assessment_text": "2-3 sentence bottom line on China's economic health and trajectory, including key risks and opportunities."
   },
+  "think_tank_sources": [
+    {
+      "org": "Organization name e.g. CSIS",
+      "title": "Publication title",
+      "date": "Publication date",
+      "url": "URL if available",
+      "key_finding": "One sentence on the most relevant finding used in this brief"
+    }
+  ],
   "source_count": {
     "submissions": ${analyzed.length},
     "high_priority_submissions": ${highPriority.length}
