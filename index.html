@@ -439,6 +439,20 @@
   .econ-forward-val { font-size: 13px; color: #1a5f8a; font-weight: 500; }
   .econ-forward-interp { font-size: 11px; color: var(--text2); margin-top: 2px; line-height: 1.5; }
 
+
+  /* Think tank sources */
+  .thinktank-section { margin-bottom: 28px; }
+  .thinktank-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .thinktank-list { display: flex; flex-direction: column; gap: 8px; }
+  .thinktank-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); }
+  .thinktank-org { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); background: rgba(107,79,42,0.08); padding: 2px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+  .thinktank-content { flex: 1; min-width: 0; }
+  .thinktank-pub-title { font-size: 12px; color: var(--text); font-weight: 500; margin-bottom: 2px; }
+  .thinktank-date { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .thinktank-finding { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .thinktank-link { font-size: 11px; color: var(--info); text-decoration: none; display: inline-block; margin-top: 4px; }
+  .thinktank-link:hover { text-decoration: underline; }
+
   @media (max-width: 600px) {
     .topbar { padding: 0 16px; }
     .main { padding: 20px 16px; }
@@ -901,6 +915,26 @@ For the Technology category: cover a BROAD range of technology domains — do NO
     return html;
   }
 
+
+  function renderThinkTankSources(sources) {
+    if (!sources || !sources.length) return '';
+    return `<div class="thinktank-section">
+      <div class="thinktank-title">Think Tank & Policy Sources Used</div>
+      <div class="thinktank-list">
+        ${sources.map(s => `
+          <div class="thinktank-item">
+            <span class="thinktank-org">${s.org || 'Unknown'}</span>
+            <div class="thinktank-content">
+              <div class="thinktank-pub-title">${s.title || 'Untitled publication'}</div>
+              ${s.date ? `<div class="thinktank-date">${s.date}</div>` : ''}
+              ${s.key_finding ? `<div class="thinktank-finding">${s.key_finding}</div>` : ''}
+              ${s.url && s.url !== 'URL if available' ? `<a class="thinktank-link" href="${s.url}" target="_blank" rel="noopener noreferrer">Read publication &#8599;</a>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div><hr class="brief-divider">`;
+  }
+
   function renderBrief() {
     if (!currentBrief) return;
     const b = currentBrief;
@@ -921,6 +955,10 @@ For the Technology category: cover a BROAD range of technology domains — do NO
       if (t.trends?.length) { html += `<div class="brief-trends">`; for (const tr of t.trends) { const c = directionColor(tr.direction); html += `<div class="brief-trend"><div class="brief-trend-dot" style="background:${c}"></div><div><div class="brief-trend-label" style="color:${c}">${tr.label} <span style="font-weight:400">${directionArrow(tr.direction)} ${tr.direction||''}</span></div><div class="brief-trend-text">${tr.text}</div></div></div>`; } html += `</div>`; }
       if (t.signals?.length) { html += `<div class="brief-signals">`; for (const s of t.signals) { html += `<div class="brief-signal"><div class="brief-signal-label">${s.label}</div><div class="brief-signal-val">${s.value}</div><div class="brief-signal-desc">${s.desc}</div></div>`; } html += `</div>`; }
       html += `</div><hr class="brief-divider">`;
+    }
+    // Add think tank sources section
+    if (b.think_tank_sources?.length) {
+      html += renderThinkTankSources(b.think_tank_sources);
     }
     // Add economic indicators section if present
     if (b.economic_indicators) {
