@@ -5,6 +5,7 @@
     { "src": "submit.html",   "use": "@vercel/static" },
     { "src": "analyst.html",  "use": "@vercel/static" },
     { "src": "brief.html",    "use": "@vercel/static" },
+    { "src": "admin.html",    "use": "@vercel/static" },
     { "src": "api/proxy.js",          "use": "@vercel/node" },
     { "src": "api/auth.js",           "use": "@vercel/node" },
     { "src": "api/brief-auth.js",     "use": "@vercel/node" },
@@ -20,6 +21,7 @@
     { "src": "/submit.html",        "dest": "/submit.html" },
     { "src": "/analyst.html",       "dest": "/analyst.html" },
     { "src": "/brief.html",         "dest": "/brief.html" },
+    { "src": "/admin.html",         "dest": "/admin.html" },
     { "src": "/(.*)",               "dest": "/index.html" }
   ],
   "crons": [
