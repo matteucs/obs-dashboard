@@ -22,14 +22,6 @@ export default async function handler(req, res) {
       return res.status(200).json(await response.json());
     }
 
-    if (action === 'getProfile') {
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/analyst_profiles?id=eq.default&limit=1`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-      );
-      const rows = await response.json();
-      return res.status(200).json(rows[0] || null);
-    }
 
     const response = await fetch(`${SUPABASE_URL}/rest/v1/submissions?order=created_at.desc`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -78,26 +70,6 @@ export default async function handler(req, res) {
       return res.status(response.status).json(data);
     } catch (err) {
       return res.status(500).json({ error: 'Save failed', details: err.message });
-    }
-  }
-
-  // ── saveProfile ───────────────────────────────────────────
-  if (action === 'saveProfile') {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/analyst_profiles`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates',
-        },
-        body: JSON.stringify({ id: 'default', updated_at: new Date().toISOString(), data: payload }),
-      });
-      const text = await response.text();
-      return res.status(response.status).json(text ? JSON.parse(text) : { ok: true });
-    } catch (err) {
-      return res.status(500).json({ error: 'Profile save failed', details: err.message });
     }
   }
 
