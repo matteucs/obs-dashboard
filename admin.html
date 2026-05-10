@@ -3,1092 +3,408 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>China Bullpen</title>
+<title>China Bullpen — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet" />
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #f4f2ee; --bg2: #ffffff; --bg3: #eceae5;
-    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.16);
-    --text: #1a1917; --text2: #4a4845; --text3: #8a8784;
-    --accent: #6b4f2a; --accent2: #2d6a4f;
-    --high: #c0392b; --med: #c47a1a; --low: #27714a; --info: #1a5f8a;
-    --font-display: 'Fraunces', Georgia, serif;
-    --font-mono: 'DM Mono', monospace;
-    --radius: 10px; --radius-lg: 16px;
-  }
-  body { background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 13px; min-height: 100vh; line-height: 1.6; }
-
-  /* Top bar */
-  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border2); padding: 0 36px; display: flex; justify-content: space-between; align-items: center; height: 52px; }
-  .topbar-logo { font-family: var(--font-display); font-size: 16px; font-weight: 300; color: var(--text); letter-spacing: -0.3px; }
-  .topbar-logo em { font-style: italic; color: var(--accent); }
-  .topbar-links { display: flex; gap: 12px; align-items: center; }
-  .topbar-link { font-size: 12px; color: var(--text3); text-decoration: none; padding: 6px 12px; border-radius: var(--radius); transition: all 0.15s; border: 1px solid transparent; }
-  .topbar-link:hover { color: var(--text); background: var(--bg3); }
-  .topbar-link.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .topbar-link.primary:hover { opacity: 0.88; background: var(--accent); }
-
-  .main { padding: 32px 36px; max-width: 900px; margin: 0 auto; }
-
-  /* Tabs */
-  .main-tabs { display: flex; gap: 4px; margin-bottom: 28px; border-bottom: 1px solid var(--border2); }
-  .main-tab { padding: 9px 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--text3); border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font-mono); transition: all 0.15s; }
-  .main-tab:hover { color: var(--text2); }
-  .main-tab.active { color: var(--text); border-bottom-color: var(--accent); }
-
-  /* News */
-  .news-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-  .page-title { font-family: var(--font-display); font-size: 32px; font-weight: 300; color: var(--text); letter-spacing: -0.5px; line-height: 1.2; }
-  .page-title em { font-style: italic; color: var(--accent); }
-  .page-date { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .btn { padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border2); background: transparent; color: var(--text); font-family: var(--font-mono); font-size: 12px; cursor: pointer; transition: all 0.15s; }
-  .btn:hover { background: var(--bg3); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .news-group-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
-  .news-group-tab { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: var(--font-mono); transition: all 0.15s; }
-  .news-group-tab:hover { background: var(--bg3); color: var(--text); }
-  .news-group-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .news-loading { padding: 48px 20px; }
-  .news-group-section { margin-bottom: 28px; }
-  .news-group-title { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border2); }
-  .news-group-name { font-family: var(--font-display); font-size: 20px; font-weight: 300; color: var(--text); }
-  .news-group-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .news-group-count { font-size: 11px; color: var(--text3); background: var(--bg3); padding: 2px 8px; border-radius: 10px; }
-  .news-cards { display: flex; flex-direction: column; gap: 8px; }
-  .news-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 18px; transition: border-color 0.15s; }
-  .news-card:hover { border-color: var(--border2); }
-  .news-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
-  .news-headline { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; flex: 1; }
-  .news-meta { display: flex; gap: 8px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
-  .news-summary { font-size: 12px; color: var(--text2); line-height: 1.6; }
-  .news-link { font-size: 11px; color: var(--info); text-decoration: none; margin-top: 6px; display: inline-block; }
-  .news-link:hover { text-decoration: underline; }
-  .news-empty { text-align: center; padding: 48px; color: var(--text3); font-size: 13px; background: var(--bg2); border: 1px dashed var(--border2); border-radius: var(--radius-lg); }
-  .news-empty-big { font-family: var(--font-display); font-size: 20px; font-weight: 300; color: var(--text3); margin-bottom: 6px; }
-  .news-last-updated { font-size: 11px; color: var(--text3); margin-bottom: 16px; }
-  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(0,0,0,0.1); border-top-color: var(--info); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; display: block; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Brief */
-  .brief-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-  .brief-type-tabs { display: flex; gap: 4px; }
-  .brief-type-tab { font-size: 12px; padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: var(--font-mono); transition: all 0.15s; }
-  .brief-type-tab:hover { background: var(--bg3); color: var(--text); }
-  .brief-type-tab.active { background: var(--text); color: var(--bg2); border-color: var(--text); }
-  .brief-history-select { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text2); font-family: var(--font-mono); font-size: 12px; padding: 6px 12px; outline: none; cursor: pointer; max-width: 280px; }
-  .brief-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; padding: 12px 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); }
-  .brief-meta-item { font-size: 11px; color: var(--text3); }
-  .brief-meta-item strong { color: var(--text2); }
-  .brief-overall { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 28px; }
-  .brief-overall-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
-  .brief-overall-text { font-size: 14px; color: var(--text); line-height: 1.8; }
-  .brief-section { margin-bottom: 32px; }
-  .brief-section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--border2); }
-  .brief-section-icon { width: 36px; height: 36px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-  .brief-section-title { font-family: var(--font-display); font-size: 22px; font-weight: 300; color: var(--text); }
-  .brief-section-sub { font-size: 11px; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
-  .brief-tldr { background: var(--bg3); border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; padding: 12px 16px; font-size: 13px; color: var(--text); line-height: 1.7; margin-bottom: 14px; font-style: italic; }
-  .brief-body { font-size: 13px; color: var(--text2); line-height: 1.8; margin-bottom: 14px; }
-  .brief-trends { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-  .brief-trend { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); }
-  .brief-trend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-  .brief-trend-text { font-size: 12px; color: var(--text2); line-height: 1.6; }
-  .brief-trend-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
-  .brief-signals { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
-  .brief-signal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; }
-  .brief-signal-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
-  .brief-signal-val { font-family: var(--font-display); font-size: 15px; font-weight: 300; color: var(--text); }
-  .brief-signal-desc { font-size: 11px; color: var(--text3); margin-top: 2px; line-height: 1.4; }
-  .brief-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-  .brief-empty { text-align: center; padding: 60px 20px; color: var(--text3); }
-  .brief-empty-big { font-family: var(--font-display); font-size: 24px; font-weight: 300; color: var(--text3); margin-bottom: 8px; }
-  .brief-risk { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
-  .brief-risk-high { background: rgba(192,57,43,0.1); color: #c0392b; border: 1px solid rgba(192,57,43,0.25); }
-  .brief-risk-medium { background: rgba(196,122,26,0.1); color: #c47a1a; border: 1px solid rgba(196,122,26,0.25); }
-  .brief-risk-low { background: rgba(39,113,74,0.1); color: #27714a; border: 1px solid rgba(39,113,74,0.25); }
-
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #f4f2ee;
-    --bg2: #ffffff;
-    --bg3: #eceae5;
-    --border: rgba(0,0,0,0.1);
-    --border2: rgba(0,0,0,0.18);
-    --text: #1a1917;
-    --text2: #4a4845;
-    --text3: #8a8784;
-    --accent: #6b4f2a;
-    --success: #27714a;
-    --danger: #c0392b;
-    --radius: 10px;
-    --radius-lg: 16px;
-    --font-display: 'Fraunces', Georgia, serif;
-    --font-mono: 'DM Mono', monospace;
-  }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 14px;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 40px 16px 60px;
-    line-height: 1.6;
-  }
-
-  .header {
-    text-align: center;
-    margin-bottom: 36px;
-    max-width: 560px;
-  }
-
-  .header-badge {
-    display: inline-block;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--text3);
-    background: var(--bg3);
-    padding: 4px 14px;
-    border-radius: 20px;
-    margin-bottom: 14px;
-  }
-
-  .header h1 {
-    font-family: var(--font-display);
-    font-size: 32px;
-    font-weight: 300;
-    color: var(--text);
-    letter-spacing: -0.5px;
-    line-height: 1.2;
-    margin-bottom: 10px;
-  }
-
-  .header h1 em {
-    font-style: italic;
-    color: var(--accent);
-  }
-
-  .header p {
-    font-size: 13px;
-    color: var(--text3);
-    max-width: 420px;
-    margin: 0 auto;
-    line-height: 1.7;
-  }
-
-  .form-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 32px 36px;
-    width: 100%;
-    max-width: 600px;
-  }
-
-  .form-section {
-    margin-bottom: 24px;
-  }
-
-  .form-section-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text3);
-    margin-bottom: 14px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  .field.full { grid-column: 1 / -1; }
-
-  label {
-    font-size: 11px;
-    color: var(--text2);
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-  }
-
-  .required-star { color: var(--danger); margin-left: 2px; }
-
-  input[type="text"],
-  input[type="email"],
-  input[type="tel"],
-  input[type="date"],
-  select,
-  textarea {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    padding: 10px 14px;
-    outline: none;
-    width: 100%;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    -webkit-appearance: none;
-  }
-
-  input:focus, select:focus, textarea:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(107,79,42,0.08);
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 120px;
-    line-height: 1.6;
-  }
-
-  select { cursor: pointer; }
-
-  .char-count {
-    font-size: 11px;
-    color: var(--text3);
-    text-align: right;
-    margin-top: 4px;
-  }
-
-  .char-count.warn { color: var(--danger); }
-
-  .field-hint {
-    font-size: 11px;
-    color: var(--text3);
-    line-height: 1.5;
-  }
-
-  .submit-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 28px;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .submit-note {
-    font-size: 11px;
-    color: var(--text3);
-    max-width: 280px;
-    line-height: 1.5;
-  }
-
-  .submit-btn {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: 500;
-    padding: 12px 28px;
-    cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s;
-  }
-
-  .submit-btn:hover { opacity: 0.88; }
-  .submit-btn:active { transform: scale(0.98); }
-  .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-  /* Success state */
-  .success-screen {
-    display: none;
-    text-align: center;
-    padding: 48px 24px;
-  }
-
-  .success-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: rgba(39,113,74,0.12);
-    border: 2px solid rgba(39,113,74,0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 22px;
-  }
-
-  .success-title {
-    font-family: var(--font-display);
-    font-size: 24px;
-    font-weight: 300;
-    color: var(--text);
-    margin-bottom: 8px;
-  }
-
-  .success-sub {
-    font-size: 13px;
-    color: var(--text3);
-    margin-bottom: 28px;
-    line-height: 1.6;
-  }
-
-  .success-ref {
-    font-size: 12px;
-    color: var(--text3);
-    background: var(--bg3);
-    padding: 8px 16px;
-    border-radius: var(--radius);
-    margin-bottom: 24px;
-    display: inline-block;
-  }
-
-  .new-submission-btn {
-    background: none;
-    border: 1px solid var(--border2);
-    border-radius: var(--radius);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--text2);
-    padding: 10px 22px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .new-submission-btn:hover { background: var(--bg3); color: var(--text); }
-
-  /* Error */
-  .field-error {
-    font-size: 11px;
-    color: var(--danger);
-    margin-top: 3px;
-  }
-
-  input.invalid, textarea.invalid, select.invalid {
-    border-color: var(--danger);
-    box-shadow: 0 0 0 3px rgba(192,57,43,0.08);
-  }
-
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(12px);
-    background: var(--text);
-    color: var(--bg2);
-    font-size: 12px;
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    opacity: 0;
-    transition: all 0.2s;
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 99;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  .footer {
-    margin-top: 32px;
-    font-size: 11px;
-    color: var(--text3);
-    text-align: center;
-  }
-
-  @media (max-width: 500px) {
-    .form-card { padding: 22px 18px; }
-    .field-grid { grid-template-columns: 1fr; }
-    .submit-row { flex-direction: column-reverse; align-items: stretch; text-align: center; }
-    .submit-note { max-width: 100%; }
-    .submit-btn { width: 100%; }
-  }
-
-
-  /* Economic indicators */
-  .econ-section { margin-bottom: 32px; }
-  .econ-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--border2); }
-  .econ-icon { width: 36px; height: 36px; border-radius: var(--radius); background: rgba(26,95,138,0.08); color: #1a5f8a; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-  .econ-title { font-family: var(--font-display); font-size: 22px; font-weight: 300; color: var(--text); }
-  .econ-sub { font-size: 11px; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
-  .econ-overview { background: var(--bg3); border-left: 3px solid #1a5f8a; border-radius: 0 var(--radius) var(--radius) 0; padding: 12px 16px; font-size: 13px; color: var(--text); line-height: 1.7; margin-bottom: 18px; font-style: italic; }
-  .econ-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 18px; }
-  .econ-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
-  .econ-card-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
-  .econ-card-value { font-family: var(--font-display); font-size: 22px; font-weight: 300; color: var(--text); line-height: 1.1; margin-bottom: 2px; }
-  .econ-card-prev { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
-  .econ-card-interp { font-size: 11px; color: var(--text2); line-height: 1.5; }
-  .econ-card-trend { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; margin-bottom: 6px; }
-  .econ-trend-rising   { background: rgba(192,57,43,0.08);  color: #c0392b; }
-  .econ-trend-falling  { background: rgba(39,113,74,0.08);  color: #27714a; }
-  .econ-trend-stable   { background: rgba(26,95,138,0.08);  color: #1a5f8a; }
-  .econ-trend-uncertain{ background: rgba(0,0,0,0.05);      color: var(--text3); }
-  .econ-block { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 12px; }
-  .econ-block-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 500; }
-  .econ-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
-  .econ-row-label { font-size: 12px; color: var(--text2); flex-shrink: 0; }
-  .econ-row-val { font-size: 12px; color: var(--text); font-weight: 500; text-align: right; }
-  .econ-interp { font-size: 12px; color: var(--text2); line-height: 1.6; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
-  .econ-assessment { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); margin-top: 16px; flex-wrap: wrap; gap: 12px; }
-  .econ-assessment-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
-  .econ-assessment-val { font-size: 13px; font-weight: 500; color: #1a5f8a; }
-  .econ-assessment-text { font-size: 12px; color: var(--text2); line-height: 1.6; flex: 1; min-width: 200px; }
-  .econ-forward { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-  .econ-forward-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); }
-  .econ-forward-name { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
-  .econ-forward-val { font-size: 13px; color: #1a5f8a; font-weight: 500; }
-  .econ-forward-interp { font-size: 11px; color: var(--text2); margin-top: 2px; line-height: 1.5; }
-
-
-  /* Think tank sources */
-  .thinktank-section { margin-bottom: 28px; }
-  .thinktank-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
-  .thinktank-list { display: flex; flex-direction: column; gap: 8px; }
-  .thinktank-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); }
-  .thinktank-org { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); background: rgba(107,79,42,0.08); padding: 2px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
-  .thinktank-content { flex: 1; min-width: 0; }
-  .thinktank-pub-title { font-size: 12px; color: var(--text); font-weight: 500; margin-bottom: 2px; }
-  .thinktank-date { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
-  .thinktank-finding { font-size: 12px; color: var(--text2); line-height: 1.5; }
-  .thinktank-link { font-size: 11px; color: var(--info); text-decoration: none; display: inline-block; margin-top: 4px; }
-  .thinktank-link:hover { text-decoration: underline; }
-
-  @media (max-width: 600px) {
-    .topbar { padding: 0 16px; }
-    .main { padding: 20px 16px; }
-  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#f4f2ee;--bg2:#fff;--bg3:#eceae5;--border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.16);--text:#1a1917;--text2:#4a4845;--text3:#8a8784;--accent:#6b4f2a;--success:#27714a;--danger:#c0392b;--info:#1a5f8a;--font-display:'Fraunces',Georgia,serif;--font-mono:'DM Mono',monospace;--radius:10px;--radius-lg:16px}
+  body{background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:13px;min-height:100vh;line-height:1.6}
+  .lock{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999}
+  .lock-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:36px 32px;width:340px;max-width:90vw;text-align:center}
+  .lock-badge{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);background:var(--bg3);padding:4px 12px;border-radius:20px;margin-bottom:16px}
+  .lock-title{font-family:var(--font-display);font-size:22px;font-weight:300;color:var(--text);margin-bottom:20px}
+  .topbar{background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 36px;display:flex;justify-content:space-between;align-items:center;height:52px}
+  .topbar-logo{font-family:var(--font-display);font-size:16px;font-weight:300;color:var(--text)}
+  .topbar-logo em{font-style:italic;color:var(--accent)}
+  .main{max-width:860px;margin:0 auto;padding:32px 24px}
+  .page-title{font-family:var(--font-display);font-size:30px;font-weight:300;color:var(--text);margin-bottom:4px}
+  .page-title em{font-style:italic;color:var(--accent)}
+  .page-sub{font-size:12px;color:var(--text3);margin-bottom:28px}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:20px}
+  .card-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field.full{grid-column:1/-1}
+  label{font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.07em}
+  input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:13px;padding:9px 12px;outline:none;width:100%;transition:border-color .15s}
+  input:focus{border-color:var(--accent)}
+  .btn{padding:8px 18px;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--text);font-family:var(--font-mono);font-size:12px;cursor:pointer;transition:all .15s}
+  .btn:hover{background:var(--bg3)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn-primary:hover{opacity:.88;background:var(--accent)}
+  .btn-danger{color:var(--danger);border-color:rgba(192,57,43,.3)}
+  .btn-danger:hover{background:rgba(192,57,43,.08);border-color:var(--danger)}
+  .btn-sm{padding:4px 12px;font-size:11px}
+  .banner{border-radius:var(--radius);padding:10px 14px;font-size:12px;margin-bottom:14px;display:none}
+  .banner-success{background:rgba(39,113,74,.08);border:1px solid rgba(39,113,74,.25);color:var(--success)}
+  .banner-error{background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.25);color:var(--danger)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;padding:8px 12px;font-size:11px;font-weight:500;color:var(--text3);border-bottom:1px solid var(--border);background:var(--bg3)}
+  td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:var(--bg3)}
+  .badge{font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(107,79,42,.08);color:var(--accent);border:1px solid rgba(107,79,42,.2)}
+  .pw-meter{height:3px;border-radius:2px;margin-top:4px;transition:all .2s;background:var(--bg3)}
+  .hint{font-size:11px;color:var(--text3);margin-top:3px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--text);color:var(--bg2);font-size:12px;padding:10px 20px;border-radius:var(--radius);opacity:0;transition:all .2s;pointer-events:none;z-index:99;white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:none;align-items:center;justify-content:center}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:24px;width:340px;max-width:90vw}
+  .modal-title{font-family:var(--font-display);font-size:18px;font-weight:300;margin-bottom:14px}
+  .modal-body{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.6}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end}
+  @media(max-width:580px){.field-grid{grid-template-columns:1fr}.topbar{padding:0 16px}.main{padding:20px 16px}}
 </style>
 </head>
 <body>
 
-<!-- Top bar -->
-<div class="topbar">
-  <div class="topbar-logo">China Bullpen</div>
-  <div class="topbar-links">
-    <a href="/brief.html" class="topbar-link primary">Analyst Brief</a>
-    <a href="/analyst.html" class="topbar-link">Analyst Tool</a>
+<!-- Lock screen -->
+<div id="lock" class="lock">
+  <div class="lock-card">
+    <div class="lock-badge">Admin Access Only</div>
+    <div class="lock-title">China Bullpen<br/><em>Admin Panel</em></div>
+    <div class="field" style="margin-bottom:12px;text-align:left">
+      <label>Admin secret</label>
+      <input type="password" id="lock-secret" placeholder="Enter admin secret"
+        onkeydown="if(event.key==='Enter')unlockAdmin()" />
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="unlockAdmin()">Unlock</button>
+    <div id="lock-error" style="font-size:12px;color:var(--danger);margin-top:10px;min-height:18px"></div>
   </div>
 </div>
 
-<div class="main">
-  <!-- Tabs -->
-  <div class="main-tabs">
-    <button class="main-tab active" id="tab-news"  onclick="switchTab('news')">Daily News Digest</button>
-    <button class="main-tab"        id="tab-brief" onclick="switchTab('brief')">Bullpen Brief</button>
-    <button class="main-tab"        id="tab-submit" onclick="switchTab('submit')">Submit Observation</button>
-  </div>
-
-  <!-- News view -->
-  <div id="view-news">
-    <div class="news-header">
-      <div>
-        <div class="page-title">China Daily <em>Digest</em></div>
-        <div class="page-date" id="news-date-label"></div>
-      </div>
-      <div>
-        <button class="btn" onclick="refreshNews()" id="news-refresh-btn">Refresh news</button>
-      </div>
-    </div>
-    <div class="news-group-tabs">
-      <button class="news-group-tab active" onclick="setNewsGroup('all',this)">All</button>
-      <button class="news-group-tab" onclick="setNewsGroup('Politics',this)">Politics</button>
-      <button class="news-group-tab" onclick="setNewsGroup('Military',this)">Military</button>
-      <button class="news-group-tab" onclick="setNewsGroup('Technology',this)">Technology</button>
-      <button class="news-group-tab" onclick="setNewsGroup('Economy',this)">Economy</button>
-    </div>
-    <div id="news-loading" style="display:none" class="news-loading">
-      <div class="spinner"></div>
-      <div style="color:var(--text3);font-size:13px;text-align:center">Fetching today's China news...</div>
-    </div>
-    <div id="news-content"></div>
-  </div>
-
-
-  <!-- Submit view -->
-  <div id="view-submit" style="display:none">
-    <div class="news-header">
-      <div>
-        <div class="page-title">Submit <em>Observation</em></div>
-        <div class="page-date">All submissions are reviewed by the analysis team</div>
-      </div>
-    </div>
-    <div class="form-card" id="form-card">
-  <form id="obs-form" novalidate onsubmit="handleFormSubmit(event)">
-
-    <!-- Submitter info -->
-    <div class="form-section">
-      <div class="form-section-label">Submitter information</div>
-      <div class="field-grid">
-        <div class="field">
-          <label for="f-name">Full name <span class="required-star">*</span></label>
-          <input type="text" id="f-name" placeholder="Your full name" autocomplete="name" />
-          <div class="field-error" id="err-name"></div>
-        </div>
-        <div class="field">
-          <label for="f-date">Date of observation <span class="required-star">*</span></label>
-          <input type="date" id="f-date" />
-          <div class="field-error" id="err-date"></div>
-        </div>
-        <div class="field">
-          <label for="f-email">Email address</label>
-          <input type="email" id="f-email" placeholder="your@email.com" autocomplete="email" />
-        </div>
-        <div class="field">
-          <label for="f-phone">Phone number</label>
-          <input type="tel" id="f-phone" placeholder="+1 (555) 000-0000" autocomplete="tel" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Observation details -->
-    <div class="form-section">
-      <div class="form-section-label">Observation details</div>
-      <div class="field-grid">
-
-        <div class="field full">
-          <label for="f-narrative">Observation narrative <span class="required-star">*</span></label>
-          <textarea id="f-narrative" placeholder="Describe what you observed in as much detail as possible. Include: what happened, where, when, who was involved, and any other relevant context..." maxlength="3000" oninput="updateCharCount()"></textarea>
-          <div class="char-count" id="char-count">0 / 3000</div>
-          <div class="field-error" id="err-narrative"></div>
-        </div>
-        <div class="field full">
-          <label for="f-location">Location / context</label>
-          <input type="text" id="f-location" placeholder="e.g. Beijing, South China Sea, specific organization, etc." />
-          <div class="field-hint" style="margin-top:4px;">Optional — helps with geographic analysis</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="submit-row">
-      <div class="submit-note">
-        Fields marked <span class="required-star">*</span> are required. Your contact details are kept confidential and only used for follow-up if needed.
-      </div>
-      <button type="submit" class="submit-btn" id="submit-btn">Submit observation</button>
-    </div>
-
-  </form>
-
-  <!-- Success screen -->
-  <div class="success-screen" id="success-screen">
-    <div class="success-icon">&#10003;</div>
-    <div class="success-title">Observation submitted</div>
-    <div class="success-sub">Your report has been received and will be reviewed by the analysis team. Thank you for your contribution.</div>
-    <div class="success-ref" id="success-ref"></div>
-    <br/>
-    <button class="new-submission-btn" onclick="resetSubmitForm()">Submit another observation</button>
+<!-- Topbar -->
+<div class="topbar" id="topbar" style="display:none">
+  <div class="topbar-logo">China Bullpen <em>Admin</em></div>
+  <div style="display:flex;gap:8px">
+    <a href="/index.html" style="font-size:12px;color:var(--text3);text-decoration:none;padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border2)">&#8592; Home</a>
+    <button class="btn" onclick="doAdminLogout()">Sign out</button>
   </div>
 </div>
 
+<!-- Main -->
+<div class="main" id="main" style="display:none">
 
-    <div class="toast" id="form-toast"></div>
+  <div class="page-title">Admin <em>Panel</em></div>
+  <div class="page-sub">Manage analyst accounts for the Bullpen Brief</div>
+
+  <!-- Create user -->
+  <div class="card">
+    <div class="card-title">Create new user account</div>
+    <div id="create-banner" class="banner"></div>
+    <div class="field-grid">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="new-username" placeholder="e.g. jsmith or john.smith"
+          oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,'')" />
+        <span class="hint">Lowercase letters, numbers, dots, hyphens only</span>
+      </div>
+      <div class="field">
+        <label>Display name (optional)</label>
+        <input type="text" id="new-displayname" placeholder="e.g. Maj. John Smith" />
+      </div>
+      <div class="field">
+        <label>Initial password</label>
+        <input type="password" id="new-password" placeholder="Min. 8 characters"
+          oninput="checkPwStrength(this.value,'pw-meter-create')" />
+        <div class="pw-meter" id="pw-meter-create"></div>
+      </div>
+      <div class="field">
+        <label>Confirm password</label>
+        <input type="password" id="new-password-confirm" placeholder="Re-enter password" />
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-primary" id="create-btn" onclick="createUser()">Create account</button>
+      <span style="font-size:11px;color:var(--text3)">User will be prompted to change their password on first sign-in</span>
+    </div>
   </div>
 
-  <!-- Brief view -->
-  <div id="view-brief" style="display:none">
-    <div class="news-header">
-      <div>
-        <div class="page-title">Bullpen <em>Brief</em></div>
-        <div class="page-date" id="brief-date-label"></div>
+  <!-- Reset password -->
+  <div class="card">
+    <div class="card-title">Reset a user password</div>
+    <div id="reset-banner" class="banner"></div>
+    <div class="field-grid">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="reset-username" placeholder="Username to reset" />
+      </div>
+      <div class="field">
+        <label>New password</label>
+        <input type="password" id="reset-password" placeholder="New password"
+          oninput="checkPwStrength(this.value,'pw-meter-reset')" />
+        <div class="pw-meter" id="pw-meter-reset"></div>
       </div>
     </div>
-    <div class="brief-nav">
-      <div class="brief-type-tabs">
-        <button class="brief-type-tab active" id="btype-daily"   onclick="setBriefType('daily',this)">Daily</button>
-        <button class="brief-type-tab"        id="btype-weekly"  onclick="setBriefType('weekly',this)">Weekly</button>
-        <button class="brief-type-tab"        id="btype-monthly" onclick="setBriefType('monthly',this)">Monthly</button>
-        <button class="brief-type-tab"        id="btype-yearly"  onclick="setBriefType('yearly',this)">Yearly</button>
-      </div>
-      <select class="brief-history-select" id="brief-history-select" onchange="loadBriefById(this.value)">
-        <option value="">Select a past brief...</option>
-      </select>
+    <button class="btn btn-primary" id="reset-btn" onclick="resetPassword()">Reset password</button>
+  </div>
+
+  <!-- User list -->
+  <div class="card">
+    <div class="card-title">
+      <span>Active accounts</span>
+      <button class="btn btn-sm" onclick="loadUsers()">&#8635; Refresh</button>
     </div>
-    <div id="brief-loading" style="display:none" class="news-loading">
-      <div class="spinner"></div>
-      <div style="color:var(--text3);font-size:13px;text-align:center">Loading brief...</div>
+    <div id="users-banner" class="banner"></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>User ID</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody">
+          <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">Loading...</td></tr>
+        </tbody>
+      </table>
     </div>
-    <div id="brief-content"></div>
+  </div>
+
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <div class="modal-title">Delete account</div>
+    <div class="modal-body" id="delete-modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-danger" id="delete-confirm-btn" onclick="confirmDelete()">Delete</button>
+    </div>
   </div>
 </div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-  const PROXY_URL = '/api/proxy';
-  const NEWS_CACHE_KEY = 'china_news_digest';
-  let activeNewsGroup = 'all';
-  let activeBriefType = 'daily';
-  let allBriefs = [];
-  let currentBrief = null;
-  let newsDigest = null;
+  const AUTH_URL = '/api/brief-auth';
+  let adminSecret = '';
+  let deleteTargetId = '';
+  let deleteTargetName = '';
 
-  const GROUP_COLORS = {
-    Politics:   { dot: '#c0392b', badge: 'rgba(192,57,43,0.1)',  text: '#c0392b', border: 'rgba(192,57,43,0.25)' },
-    Military:   { dot: '#6b2d2d', badge: 'rgba(107,45,45,0.1)',  text: '#6b2d2d', border: 'rgba(107,45,45,0.25)' },
-    Technology: { dot: '#1a5f8a', badge: 'rgba(26,95,138,0.1)',  text: '#1a5f8a', border: 'rgba(26,95,138,0.25)' },
-    Economy:    { dot: '#2d6a4f', badge: 'rgba(45,106,79,0.1)',  text: '#2d6a4f', border: 'rgba(45,106,79,0.25)' },
-  };
-
-  const BRIEF_THEMES = [
-    { key: 'economy',    label: 'Economy',                icon: '&#9650;', color: '#2d6a4f', bg: 'rgba(45,106,79,0.08)',  desc: 'Trade, growth, financial systems & markets' },
-    { key: 'regional',   label: 'Regional Goals',         icon: '&#9670;', color: '#1a5f8a', bg: 'rgba(26,95,138,0.08)',  desc: 'Territorial ambitions, diplomacy & influence' },
-    { key: 'military',   label: 'Military Growth',        icon: '&#9632;', color: '#c0392b', bg: 'rgba(192,57,43,0.08)',  desc: 'PLA expansion, weapons & strategic posture' },
-    { key: 'technology', label: 'Technology Development', icon: '&#9711;', color: '#6b4f2a', bg: 'rgba(107,79,42,0.08)', desc: 'Innovation, semiconductors, AI & cyber' },
-  ];
-
-  function switchTab(tab) {
-    document.getElementById('view-news').style.display   = tab === 'news'   ? 'block' : 'none';
-    document.getElementById('view-brief').style.display  = tab === 'brief'  ? 'block' : 'none';
-    document.getElementById('view-submit').style.display = tab === 'submit' ? 'block' : 'none';
-    document.getElementById('tab-news').classList.toggle('active',   tab === 'news');
-    document.getElementById('tab-brief').classList.toggle('active',  tab === 'brief');
-    document.getElementById('tab-submit').classList.toggle('active', tab === 'submit');
-    if (tab === 'news')  initNews();
-    if (tab === 'brief') initBrief();
+  // ── Lock / unlock ──────────────────────────────────────────
+  function unlockAdmin() {
+    const secret = document.getElementById('lock-secret').value.trim();
+    if (!secret) { document.getElementById('lock-error').textContent = 'Please enter the admin secret.'; return; }
+    adminSecret = secret;
+    // Test by loading users — if it works, we're in
+    loadUsers().then(ok => {
+      if (ok) {
+        document.getElementById('lock').style.display = 'none';
+        document.getElementById('topbar').style.display = 'flex';
+        document.getElementById('main').style.display = 'block';
+        sessionStorage.setItem('admin_secret', secret);
+      } else {
+        document.getElementById('lock-error').textContent = 'Incorrect admin secret.';
+        adminSecret = '';
+      }
+    });
   }
 
-  // ── News ────────────────────────────────────────────────────
-  function setNewsGroup(group, el) {
-    activeNewsGroup = group;
-    document.querySelectorAll('.news-group-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    renderNewsContent();
+  function doAdminLogout() {
+    sessionStorage.removeItem('admin_secret');
+    adminSecret = '';
+    document.getElementById('lock').style.display = 'flex';
+    document.getElementById('topbar').style.display = 'none';
+    document.getElementById('main').style.display = 'none';
+    document.getElementById('lock-secret').value = '';
+    document.getElementById('lock-error').textContent = '';
   }
 
-  async function initNews() {
-    const today = new Date().toISOString().split('T')[0];
-    const cached = JSON.parse(localStorage.getItem(NEWS_CACHE_KEY) || 'null');
-    document.getElementById('news-date-label').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    if (cached && cached.date === today) { newsDigest = cached; renderNewsContent(); return; }
-    await fetchNews();
+  // ── Password strength ──────────────────────────────────────
+  function checkPwStrength(pw, meterId) {
+    const el = document.getElementById(meterId);
+    if (!pw) { el.style.background = 'var(--bg3)'; el.style.width = '100%'; return; }
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    const colors = ['#c0392b','#c47a1a','#c47a1a','#27714a','#27714a'];
+    el.style.background = colors[Math.min(score-1, 4)] || 'var(--bg3)';
   }
 
-  async function refreshNews() {
-    localStorage.removeItem(NEWS_CACHE_KEY);
-    newsDigest = null;
-    await fetchNews();
-  }
+  // ── Create user ────────────────────────────────────────────
+  async function createUser() {
+    const banner = document.getElementById('create-banner');
+    const username = document.getElementById('new-username').value.trim();
+    const displayName = document.getElementById('new-displayname').value.trim();
+    const password = document.getElementById('new-password').value;
+    const confirm = document.getElementById('new-password-confirm').value;
+    banner.style.display = 'none';
 
-  async function fetchNews() {
-    document.getElementById('news-loading').style.display = 'block';
-    document.getElementById('news-content').innerHTML = '';
-    document.getElementById('news-refresh-btn').disabled = true;
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const prompt = `Today is ${today}. You are a China analyst. Search for and summarize today's most important news stories about China across four categories: Politics, Military, Technology, and Economy. For each category, provide 4-6 of the most significant stories from today or the last 24 hours.
+    if (!username) return showBanner('create-banner', 'error', 'Username is required.');
+    if (username.length < 3) return showBanner('create-banner', 'error', 'Username must be at least 3 characters.');
+    if (!password) return showBanner('create-banner', 'error', 'Password is required.');
+    if (password.length < 8) return showBanner('create-banner', 'error', 'Password must be at least 8 characters.');
+    if (password !== confirm) return showBanner('create-banner', 'error', 'Passwords do not match.');
 
-For the Technology category: cover a BROAD range of technology domains — do NOT focus primarily on AI. Include stories across semiconductors & chip manufacturing, space & aerospace, 5G/6G telecom, quantum computing, biotechnology & genomics, green energy tech (solar, EVs, batteries), nuclear technology, robotics & automation, cybersecurity, undersea cables, and dual-use military-civilian tech. AI may appear as one story but should not dominate. Respond ONLY with valid JSON: { "date": "${new Date().toISOString().split('T')[0]}", "generated": "${new Date().toISOString()}", "categories": { "Politics": [{ "headline": "...", "summary": "1-2 sentence summary.", "source": "Source name", "url": "https://...", "significance": "High|Medium|Low" }], "Military": [...], "Technology": [...], "Economy": [...] } }`;
+    const btn = document.getElementById('create-btn');
+    btn.disabled = true; btn.textContent = 'Creating...';
+
     try {
-      const response = await fetch(PROXY_URL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'analyze', payload: { model: 'claude-sonnet-4-20250514', max_tokens: 4000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: prompt }] } })
+      const res = await fetch(AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'register', username, password, adminSecret, displayName })
       });
-      if (!response.ok) throw new Error('API error');
-      const data = await response.json();
-      let jsonText = null;
-      for (const block of (data.content || [])) {
-        if (block.type === 'text' && block.text) {
-          const cleaned = block.text.trim().replace(/```json|```/g, '').trim();
-          try { JSON.parse(cleaned); jsonText = cleaned; break; } catch(e) {}
-          const match = cleaned.match(/\{[\s\S]*\}/);
-          if (match) { try { JSON.parse(match[0]); jsonText = match[0]; break; } catch(e) {} }
-        }
-      }
-      if (!jsonText) throw new Error('No valid JSON in response');
-      newsDigest = JSON.parse(jsonText);
-      newsDigest.date = new Date().toISOString().split('T')[0];
-      localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(newsDigest));
-      renderNewsContent();
-    } catch(e) {
-      document.getElementById('news-content').innerHTML = `<div class="news-empty"><div class="news-empty-big">Could not load news</div><div>${e.message}</div></div>`;
-    }
-    document.getElementById('news-loading').style.display = 'none';
-    document.getElementById('news-refresh-btn').disabled = false;
-  }
-
-  function renderNewsContent() {
-    if (!newsDigest) return;
-    const groups = ['Politics', 'Military', 'Technology', 'Economy'];
-    const toShow = activeNewsGroup === 'all' ? groups : [activeNewsGroup];
-    const generated = newsDigest.generated ? new Date(newsDigest.generated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
-    let html = generated ? `<div class="news-last-updated">Last updated at ${generated}</div>` : '';
-    for (const group of toShow) {
-      const items = newsDigest.categories?.[group] || [];
-      const colors = GROUP_COLORS[group];
-      html += `<div class="news-group-section"><div class="news-group-title"><div class="news-group-dot" style="background:${colors.dot}"></div><span class="news-group-name">${group}</span><span class="news-group-count">${items.length} stories</span></div><div class="news-cards">`;
-      if (!items.length) { html += `<div style="font-size:12px;color:var(--text3);padding:8px 0;">No stories found.</div>`; }
-      else {
-        for (const item of items) {
-          const sigColor = item.significance === 'High' ? 'var(--high)' : item.significance === 'Medium' ? 'var(--med)' : 'var(--text3)';
-          html += `<div class="news-card"><div class="news-card-top"><div class="news-headline">${item.headline}</div><div class="news-meta"><span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${colors.badge};color:${colors.text};border:1px solid ${colors.border};font-weight:500;text-transform:uppercase;letter-spacing:0.04em">${group}</span>${item.significance ? `<span style="font-size:11px;color:${sigColor};font-weight:500">${item.significance}</span>` : ''}</div></div><div class="news-summary">${item.summary}</div><div style="margin-top:8px">${item.url ? `<a class="news-link" href="${item.url}" target="_blank" rel="noopener noreferrer">${item.source || 'Read article'} &#8599;</a>` : item.source ? `<span style="font-size:11px;color:var(--text3)">${item.source}</span>` : ''}</div></div>`;
-        }
-      }
-      html += `</div></div>`;
-    }
-    document.getElementById('news-content').innerHTML = html;
-  }
-
-  // ── Brief ───────────────────────────────────────────────────
-  async function initBrief() {
-    document.getElementById('brief-date-label').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    await loadBriefs(activeBriefType);
-  }
-
-  function setBriefType(type, el) {
-    activeBriefType = type;
-    document.querySelectorAll('.brief-type-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    loadBriefs(type);
-  }
-
-  async function loadBriefs(type) {
-    document.getElementById('brief-loading').style.display = 'block';
-    document.getElementById('brief-content').innerHTML = '';
-    try {
-      const res = await fetch(`${PROXY_URL}?action=listBriefs&type=${type}`);
       const data = await res.json();
-      allBriefs = Array.isArray(data) ? data : [];
-    } catch(e) { allBriefs = []; }
-    document.getElementById('brief-loading').style.display = 'none';
-    const sel = document.getElementById('brief-history-select');
-    sel.innerHTML = '<option value="">Select a past brief...</option>' + allBriefs.map(b => `<option value="${b.id}">${b.period_label}</option>`).join('');
-    if (allBriefs.length) {
-      currentBrief = allBriefs[0].content;
-      currentBrief._period_label = allBriefs[0].period_label;
-      currentBrief._type = allBriefs[0].type;
-      sel.value = allBriefs[0].id;
-      renderBrief();
-    } else {
-      document.getElementById('brief-content').innerHTML = `<div class="brief-empty"><div class="brief-empty-big">No ${type} briefs available yet</div><div style="font-size:13px;color:var(--text3);margin-top:8px">Briefs are generated automatically on a daily, weekly, monthly, and yearly schedule.</div></div>`;
-    }
-  }
-
-  function loadBriefById(id) {
-    if (!id) return;
-    const b = allBriefs.find(x => x.id === id);
-    if (b) { currentBrief = b.content; currentBrief._period_label = b.period_label; currentBrief._type = b.type; renderBrief(); }
-  }
-
-
-  function renderEconomicIndicators(econ) {
-    if (!econ) return '';
-    const trendClass = t => {
-      const m = { Rising: 'econ-trend-rising', Falling: 'econ-trend-falling', Stable: 'econ-trend-stable', Uncertain: 'econ-trend-uncertain', Appreciation: 'econ-trend-rising', Depreciation: 'econ-trend-falling' };
-      return m[t] || 'econ-trend-uncertain';
-    };
-    const trendArrow = t => ({ Rising: '&#8679;', Falling: '&#8681;', Stable: '&#8596;', Appreciation: '&#8679;', Depreciation: '&#8681;' }[t] || '&#63;');
-
-    let html = `<div class="econ-section">
-      <div class="econ-header">
-        <div class="econ-icon">&#9654;</div>
-        <div>
-          <div class="econ-title">Economic Indicators</div>
-          <div class="econ-sub">Advanced data — China macroeconomic dashboard${econ.search_date ? ' · ' + econ.search_date : ''}</div>
-        </div>
-      </div>`;
-
-    if (econ.overview) html += `<div class="econ-overview">${econ.overview}</div>`;
-
-    // Key indicators grid
-    if (econ.indicators?.length) {
-      html += `<div class="econ-grid">`;
-      for (const ind of econ.indicators) {
-        html += `<div class="econ-card">
-          <div class="econ-card-label">${ind.name}</div>
-          <div class="econ-card-value">${ind.value}</div>
-          ${ind.previous ? `<div class="econ-card-prev">Prev: ${ind.previous}</div>` : ''}
-          ${ind.trend ? `<div class="econ-card-trend ${trendClass(ind.trend)}">${trendArrow(ind.trend)} ${ind.trend}</div>` : ''}
-          ${ind.interpretation ? `<div class="econ-card-interp">${ind.interpretation}</div>` : ''}
-        </div>`;
+      if (data.ok) {
+        showBanner('create-banner', 'success', `Account created for "${username}". Share their credentials securely.`);
+        document.getElementById('new-username').value = '';
+        document.getElementById('new-displayname').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('new-password-confirm').value = '';
+        document.getElementById('pw-meter-create').style.background = 'var(--bg3)';
+        loadUsers();
+      } else {
+        showBanner('create-banner', 'error', data.error || 'Failed to create account.');
       }
-      html += `</div>`;
+    } catch(e) {
+      showBanner('create-banner', 'error', 'Connection error: ' + e.message);
     }
+    btn.disabled = false; btn.textContent = 'Create account';
+  }
 
-    // PMI
-    if (econ.pmi) {
-      html += `<div class="econ-block"><div class="econ-block-title">Purchasing Managers Index (PMI)</div>
-        <div class="econ-row"><span class="econ-row-label">Manufacturing PMI</span><span class="econ-row-val">${econ.pmi.manufacturing || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Services PMI</span><span class="econ-row-val">${econ.pmi.services || '—'}</span></div>
-        ${econ.pmi.interpretation ? `<div class="econ-interp">${econ.pmi.interpretation}</div>` : ''}
-      </div>`;
-    }
+  // ── Reset password ─────────────────────────────────────────
+  async function resetPassword() {
+    const username = document.getElementById('reset-username').value.trim();
+    const password = document.getElementById('reset-password').value;
+    if (!username) return showBanner('reset-banner', 'error', 'Username is required.');
+    if (password.length < 8) return showBanner('reset-banner', 'error', 'Password must be at least 8 characters.');
 
-    // Trade
-    if (econ.trade) {
-      html += `<div class="econ-block"><div class="econ-block-title">Trade & Current Account</div>
-        <div class="econ-row"><span class="econ-row-label">Exports YoY</span><span class="econ-row-val">${econ.trade.exports || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Imports YoY</span><span class="econ-row-val">${econ.trade.imports || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Trade surplus</span><span class="econ-row-val">${econ.trade.surplus || '—'}</span></div>
-        ${econ.trade.key_partners ? `<div class="econ-row"><span class="econ-row-label">Key partners</span><span class="econ-row-val" style="text-align:right;max-width:60%;font-weight:400">${econ.trade.key_partners}</span></div>` : ''}
-        ${econ.trade.interpretation ? `<div class="econ-interp">${econ.trade.interpretation}</div>` : ''}
-      </div>`;
-    }
+    const btn = document.getElementById('reset-btn');
+    btn.disabled = true; btn.textContent = 'Resetting...';
 
-    // Two column: currency + inflation
-    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">`;
-
-    if (econ.currency) {
-      html += `<div class="econ-block"><div class="econ-block-title">Currency (RMB/CNY)</div>
-        <div class="econ-row"><span class="econ-row-label">USD/CNY</span><span class="econ-row-val">${econ.currency.usd_cny || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Trend</span><span class="econ-row-val"><span class="econ-card-trend ${trendClass(econ.currency.trend)}" style="display:inline-flex">${trendArrow(econ.currency.trend)} ${econ.currency.trend || '—'}</span></span></div>
-        ${econ.currency.pboc_action ? `<div class="econ-row"><span class="econ-row-label">PBOC</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.currency.pboc_action}</span></div>` : ''}
-        ${econ.currency.interpretation ? `<div class="econ-interp">${econ.currency.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    if (econ.inflation) {
-      html += `<div class="econ-block"><div class="econ-block-title">Inflation</div>
-        <div class="econ-row"><span class="econ-row-label">CPI</span><span class="econ-row-val">${econ.inflation.cpi || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">PPI</span><span class="econ-row-val">${econ.inflation.ppi || '—'}</span></div>
-        ${econ.inflation.interpretation ? `<div class="econ-interp">${econ.inflation.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    html += `</div>`;
-
-    // Two column: employment + FDI
-    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">`;
-
-    if (econ.employment) {
-      html += `<div class="econ-block"><div class="econ-block-title">Employment</div>
-        <div class="econ-row"><span class="econ-row-label">Urban unemployment</span><span class="econ-row-val">${econ.employment.urban_unemployment || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Youth unemployment</span><span class="econ-row-val">${econ.employment.youth_unemployment || '—'}</span></div>
-        ${econ.employment.interpretation ? `<div class="econ-interp">${econ.employment.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    if (econ.foreign_investment) {
-      html += `<div class="econ-block"><div class="econ-block-title">Foreign Investment (FDI)</div>
-        <div class="econ-row"><span class="econ-row-label">FDI inflows</span><span class="econ-row-val">${econ.foreign_investment.fdi || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Trend</span><span class="econ-row-val"><span class="econ-card-trend ${trendClass(econ.foreign_investment.trend)}" style="display:inline-flex">${trendArrow(econ.foreign_investment.trend)} ${econ.foreign_investment.trend || '—'}</span></span></div>
-        ${econ.foreign_investment.interpretation ? `<div class="econ-interp">${econ.foreign_investment.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    html += `</div>`;
-
-    // Real estate
-    if (econ.real_estate) {
-      html += `<div class="econ-block"><div class="econ-block-title">Real Estate Sector</div>
-        <div class="econ-row"><span class="econ-row-label">Market status</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:65%">${econ.real_estate.status || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Key developers</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:65%">${econ.real_estate.key_developers || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Policy response</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:65%">${econ.real_estate.policy_response || '—'}</span></div>
-        ${econ.real_estate.interpretation ? `<div class="econ-interp">${econ.real_estate.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    // Debt
-    if (econ.debt) {
-      html += `<div class="econ-block"><div class="econ-block-title">Debt & Leverage</div>
-        <div class="econ-row"><span class="econ-row-label">Local government debt</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.debt.local_government || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Corporate debt</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.debt.corporate || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Household debt</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.debt.household || '—'}</span></div>
-        ${econ.debt.interpretation ? `<div class="econ-interp">${econ.debt.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    // Forward / alternative indicators
-    if (econ.forward_indicators?.length) {
-      html += `<div class="econ-block-title" style="margin-bottom:8px">Alternative & Forward Indicators</div>
-        <div class="econ-forward">`;
-      for (const fi of econ.forward_indicators) {
-        html += `<div class="econ-forward-item">
-          <div style="flex:1">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-              <div class="econ-forward-name">${fi.name}</div>
-              <div class="econ-forward-val">${fi.value}</div>
-            </div>
-            ${fi.interpretation ? `<div class="econ-forward-interp">${fi.interpretation}</div>` : ''}
-          </div>
-        </div>`;
+    try {
+      const res = await fetch(AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'adminResetPassword', username, newPassword: password, adminSecret })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showBanner('reset-banner', 'success', `Password reset for "${username}".`);
+        document.getElementById('reset-username').value = '';
+        document.getElementById('reset-password').value = '';
+        document.getElementById('pw-meter-reset').style.background = 'var(--bg3)';
+      } else {
+        showBanner('reset-banner', 'error', data.error || 'Reset failed.');
       }
-      html += `</div>`;
+    } catch(e) {
+      showBanner('reset-banner', 'error', 'Connection error.');
     }
+    btn.disabled = false; btn.textContent = 'Reset password';
+  }
 
-    // Overall assessment
-    if (econ.overall_assessment || econ.overall_assessment_text) {
-      html += `<div class="econ-assessment">
-        <div>
-          <div class="econ-assessment-label">Economic health assessment</div>
-          <div class="econ-assessment-val">${econ.overall_assessment || '—'}</div>
-        </div>
-        ${econ.overall_assessment_text ? `<div class="econ-assessment-text">${econ.overall_assessment_text}</div>` : ''}
-      </div>`;
+  // ── Load users ─────────────────────────────────────────────
+  async function loadUsers() {
+    try {
+      const res = await fetch(AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'listUsers', adminSecret })
+      });
+      const data = await res.json();
+      if (!data.ok) { renderUsers([]); return false; }
+      renderUsers(data.users || []);
+      return true;
+    } catch(e) {
+      renderUsers([]);
+      return false;
     }
-
-    html += `</div><hr class="brief-divider">`;
-    return html;
   }
 
-
-  function renderThinkTankSources(sources) {
-    if (!sources || !sources.length) return '';
-    return `<div class="thinktank-section">
-      <div class="thinktank-title">Think Tank & Policy Sources Used</div>
-      <div class="thinktank-list">
-        ${sources.map(s => `
-          <div class="thinktank-item">
-            <span class="thinktank-org">${s.org || 'Unknown'}</span>
-            <div class="thinktank-content">
-              <div class="thinktank-pub-title">${s.title || 'Untitled publication'}</div>
-              ${s.date ? `<div class="thinktank-date">${s.date}</div>` : ''}
-              ${s.key_finding ? `<div class="thinktank-finding">${s.key_finding}</div>` : ''}
-              ${s.url && s.url !== 'URL if available' ? `<a class="thinktank-link" href="${s.url}" target="_blank" rel="noopener noreferrer">Read publication &#8599;</a>` : ''}
-            </div>
-          </div>`).join('')}
-      </div>
-    </div><hr class="brief-divider">`;
-  }
-
-  function renderBrief() {
-    if (!currentBrief) return;
-    const b = currentBrief;
-    const riskClass = r => r === 'High' ? 'brief-risk-high' : r === 'Medium' ? 'brief-risk-medium' : 'brief-risk-low';
-    const directionArrow = d => d === 'Rising' ? '&#8679;' : d === 'Falling' ? '&#8681;' : d === 'Stable' ? '&#8596;' : '&#63;';
-    const directionColor = d => d === 'Rising' ? '#c0392b' : d === 'Falling' ? '#2d6a4f' : d === 'Stable' ? '#1a5f8a' : '#8a8784';
-    const gen = b.generated ? new Date(b.generated).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-    let html = '';
-    if (b._period_label) html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><span style="font-size:11px;padding:3px 12px;border-radius:20px;background:var(--bg3);color:var(--text3);text-transform:uppercase;letter-spacing:0.08em">${(b._type||activeBriefType).toUpperCase()} BRIEF</span><span style="font-size:13px;color:var(--text2)">${b._period_label}</span></div>`;
-    html += `<div class="brief-meta">${gen ? `<div class="brief-meta-item"><strong>Generated:</strong> ${gen}</div>` : ''}<div class="brief-meta-item"><strong>Overall risk:</strong> <span class="brief-risk ${riskClass(b.overall_risk)}">${b.overall_risk||'—'}</span></div></div>`;
-    if (b.overall_assessment) html += `<div class="brief-overall"><div class="brief-overall-title">Executive assessment</div><div class="brief-overall-text">${b.overall_assessment}</div></div>`;
-    for (const theme of BRIEF_THEMES) {
-      const t = b.themes?.[theme.key];
-      if (!t) continue;
-      html += `<div class="brief-section"><div class="brief-section-header"><div class="brief-section-icon" style="background:${theme.bg};color:${theme.color}">${theme.icon}</div><div><div class="brief-section-title">${theme.label}</div><div class="brief-section-sub">${theme.desc}</div></div><div style="margin-left:auto"><span class="brief-risk ${riskClass(t.risk)}">${t.risk} risk</span></div></div>`;
-      if (t.tldr) html += `<div class="brief-tldr">${t.tldr}</div>`;
-      if (t.analysis) html += `<div class="brief-body">${t.analysis}</div>`;
-      if (t.trends?.length) { html += `<div class="brief-trends">`; for (const tr of t.trends) { const c = directionColor(tr.direction); html += `<div class="brief-trend"><div class="brief-trend-dot" style="background:${c}"></div><div><div class="brief-trend-label" style="color:${c}">${tr.label} <span style="font-weight:400">${directionArrow(tr.direction)} ${tr.direction||''}</span></div><div class="brief-trend-text">${tr.text}</div></div></div>`; } html += `</div>`; }
-      if (t.signals?.length) { html += `<div class="brief-signals">`; for (const s of t.signals) { html += `<div class="brief-signal"><div class="brief-signal-label">${s.label}</div><div class="brief-signal-val">${s.value}</div><div class="brief-signal-desc">${s.desc}</div></div>`; } html += `</div>`; }
-      html += `</div><hr class="brief-divider">`;
+  function renderUsers(users) {
+    const tbody = document.getElementById('users-tbody');
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px">No accounts yet</td></tr>';
+      return;
     }
-    // Add think tank sources section
-    if (b.think_tank_sources?.length) {
-      html += renderThinkTankSources(b.think_tank_sources);
-    }
-    // Add economic indicators section if present
-    if (b.economic_indicators) {
-      html += renderEconomicIndicators(b.economic_indicators);
-    }
-    document.getElementById('brief-content').innerHTML = html;
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td><span class="badge">${u.username}</span></td>
+        <td style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">${u.id}</td>
+        <td style="font-size:11px;color:var(--text3)">${u.created_at ? new Date(u.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="openDeleteModal('${u.id}','${u.username}')">Delete</button></td>
+      </tr>`).join('');
   }
 
-  // Init
-  initNews();
-
-
-  // ── Submission form ──────────────────────────────────────
-  // Set today's date on load
-  (function() {
-    const d = document.getElementById('f-date');
-    if (d) d.value = new Date().toISOString().split('T')[0];
-  })();
-
-  function updateCharCount() {
-    const val = document.getElementById('f-narrative').value;
-    const el = document.getElementById('char-count');
-    if (!el) return;
-    el.textContent = val.length + ' / 3000';
-    el.classList.toggle('warn', val.length > 2700);
+  // ── Delete user ────────────────────────────────────────────
+  function openDeleteModal(userId, username) {
+    deleteTargetId = userId;
+    deleteTargetName = username;
+    document.getElementById('delete-modal-body').textContent =
+      `Permanently delete the account for "${username}"? This cannot be undone. Their profile data will also be removed.`;
+    document.getElementById('delete-modal').classList.add('open');
   }
 
-  function showFormToast(msg) {
-    const t = document.getElementById('form-toast');
-    if (!t) return;
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
+  function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.remove('open');
+    deleteTargetId = ''; deleteTargetName = '';
   }
 
-  function clearFormErrors() {
-    document.querySelectorAll('.field-error').forEach(e => e.textContent = '');
-    document.querySelectorAll('.invalid').forEach(e => e.classList.remove('invalid'));
-  }
-
-  function setFormError(fieldId, errId, msg) {
-    const f = document.getElementById(fieldId);
-    const e = document.getElementById(errId);
-    if (f) f.classList.add('invalid');
-    if (e) e.textContent = msg;
-  }
-
-  function validateForm() {
-    clearFormErrors();
-    let valid = true;
-    const name      = (document.getElementById('f-name')?.value || '').trim();
-    const date      = document.getElementById('f-date')?.value || '';
-    const narrative = (document.getElementById('f-narrative')?.value || '').trim();
-    if (!name)                    { setFormError('f-name', 'err-name', 'Full name is required.'); valid = false; }
-    if (!date)                    { setFormError('f-date', 'err-date', 'Date is required.'); valid = false; }
-    if (narrative.length < 20)    { setFormError('f-narrative', 'err-narrative', 'Please provide a detailed narrative (at least 20 characters).'); valid = false; }
-    return valid;
-  }
-
-  function resetSubmitForm() {
-    const form = document.getElementById('obs-form');
-    if (form) form.reset();
-    const d = document.getElementById('f-date');
-    if (d) d.value = new Date().toISOString().split('T')[0];
-    const cc = document.getElementById('char-count');
-    if (cc) cc.textContent = '0 / 3000';
-    clearFormErrors();
-    const formEl = document.getElementById('obs-form');
-    const successEl = document.getElementById('success-screen');
-    const btn = document.getElementById('submit-btn');
-    if (formEl) formEl.style.display = 'block';
-    if (successEl) successEl.style.display = 'none';
-    if (btn) { btn.disabled = false; btn.textContent = 'Submit observation'; }
-  }
-
-  async function handleFormSubmit(e) {
-      e.preventDefault();
-      if (!validateForm()) return;
-
-      const btn = document.getElementById('submit-btn');
-      btn.disabled = true;
-      btn.textContent = 'Submitting...';
-
-      const name      = document.getElementById('f-name').value.trim();
-      const date      = document.getElementById('f-date').value;
-      const email     = (document.getElementById('f-email')?.value || '').trim();
-      const phone     = (document.getElementById('f-phone')?.value || '').trim();
-      const narrative = document.getElementById('f-narrative').value.trim();
-      const location  = (document.getElementById('f-location')?.value || '').trim();
-      const contact   = [email, phone].filter(Boolean).join(' / ');
-      const id        = Date.now();
-      const refNumber = 'OBS-' + id.toString().slice(-8).toUpperCase();
-      const fullNarrative = location ? '[' + location + '] ' + narrative : narrative;
-
-      try {
-        const res = await fetch(PROXY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'save',
-            payload: {
-              id,
-              date,
-              name,
-              contact,
-              narrative: fullNarrative,
-              analysis: null,
-              similar_group_index: null,
-              folder_id: null,
-              ref_number: refNumber
-            }
-          })
-        });
-
-        if (!res.ok) throw new Error('Submission failed. Please try again.');
-
-        document.getElementById('obs-form').style.display = 'none';
-        document.getElementById('success-screen').style.display = 'block';
-        const refEl = document.getElementById('success-ref');
-        if (refEl) refEl.textContent = 'Reference number: ' + refNumber;
-
-      } catch(err) {
-        showFormToast(err.message || 'Something went wrong. Please try again.');
-        btn.disabled = false;
-        btn.textContent = 'Submit observation';
+  async function confirmDelete() {
+    const btn = document.getElementById('delete-confirm-btn');
+    btn.disabled = true; btn.textContent = 'Deleting...';
+    try {
+      const res = await fetch(AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'deleteUser', userId: deleteTargetId, adminSecret })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast(`Account "${deleteTargetName}" deleted.`);
+        closeDeleteModal();
+        loadUsers();
+      } else {
+        showBanner('users-banner', 'error', data.error || 'Delete failed.');
+        closeDeleteModal();
       }
+    } catch(e) {
+      showBanner('users-banner', 'error', 'Connection error.');
+      closeDeleteModal();
+    }
+    btn.disabled = false; btn.textContent = 'Delete';
   }
 
+  // ── Helpers ────────────────────────────────────────────────
+  function showBanner(id, type, msg) {
+    const el = document.getElementById(id);
+    el.className = 'banner banner-' + type;
+    el.textContent = msg;
+    el.style.display = 'block';
+    if (type === 'success') setTimeout(() => el.style.display = 'none', 5000);
+  }
 
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ── Init ───────────────────────────────────────────────────
+  const saved = sessionStorage.getItem('admin_secret');
+  if (saved) {
+    adminSecret = saved;
+    loadUsers().then(ok => {
+      if (ok) {
+        document.getElementById('lock').style.display = 'none';
+        document.getElementById('topbar').style.display = 'flex';
+        document.getElementById('main').style.display = 'block';
+      } else {
+        adminSecret = '';
+        sessionStorage.removeItem('admin_secret');
+      }
+    });
+  }
 </script>
 </body>
 </html>
