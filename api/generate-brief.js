@@ -23,10 +23,14 @@ export default async function handler(req, res) {
 
   const briefId = `${briefType}-${now.toISOString().split('T')[0]}`;
 
-  // Load analyst profile
+  // Load analyst profile — use userId from query param if present
   let analystProfile = null;
   try {
-    const profRes = await fetch(`${SUPABASE_URL}/rest/v1/analyst_profiles?id=eq.default&limit=1`, {
+    const userId = req.query.userId || 'default';
+    const profUrl = userId === 'default'
+      ? `${SUPABASE_URL}/rest/v1/analyst_profiles?id=eq.default&limit=1`
+      : `${SUPABASE_URL}/rest/v1/analyst_profiles?user_id=eq.${userId}&limit=1`;
+    const profRes = await fetch(profUrl, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const profRows = await profRes.json();
