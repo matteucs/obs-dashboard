@@ -23,6 +23,16 @@ export default async function handler(req, res) {
 
   const briefId = `${briefType}-${now.toISOString().split('T')[0]}`;
 
+  // Load analyst profile
+  let analystProfile = null;
+  try {
+    const profRes = await fetch(`${SUPABASE_URL}/rest/v1/analyst_profiles?id=eq.default&limit=1`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const profRows = await profRes.json();
+    if (profRows?.[0]?.data) analystProfile = profRows[0].data;
+  } catch(e) {}
+
   // Load submissions
   let submissions = [];
   try {
@@ -59,6 +69,24 @@ LOW PRIORITY (${lowPriority.length}):
 ${lowPriority.length ? lowPriority.map(fmtSub).join('\n') : '  None'}
 ` : 'No field submissions for this period.';
 
+  // Build analyst profile context
+  const profileContext = analystProfile ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ANALYST PROFILE — TAILOR THIS BRIEF TO THIS USER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Role / Title: ${analystProfile.role || 'Not specified'}
+Unit / Organization: ${analystProfile.unit || 'Not specified'}
+Command / MAJCOM: ${analystProfile.command || 'Not specified'}
+Primary Mission Area: ${analystProfile.mission_area || 'Not specified'}
+Geographic Area of Responsibility: ${analystProfile.aor || 'Not specified'}
+Key Intelligence Questions: ${analystProfile.key_questions || 'Not specified'}
+Priority Topics: ${(analystProfile.priority_topics || []).join(', ') || 'Not specified'}
+Operational Context: ${analystProfile.operational_context || 'Not specified'}
+How to tailor: ${analystProfile.tailoring_notes || 'Not specified'}
+
+TAILORING INSTRUCTIONS: Shape the emphasis, depth, and recommendations of this brief to directly serve this analyst's role and mission. Highlight developments most relevant to their AOR and priority topics. Frame analysis through the lens of their operational context. Use appropriate military/DoD terminology. Where relevant, note implications for their specific command or mission area.
+` : '';
+
   // Historical context
   let historicalContext = '';
   if (briefType !== 'daily') {
@@ -77,7 +105,7 @@ ${lowPriority.length ? lowPriority.map(fmtSub).join('\n') : '  None'}
   }
 
   const prompt = `You are a senior China intelligence analyst producing a ${briefType.toUpperCase()} brief dated ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
-
+${profileContext}
 You have two source categories with DIFFERENT analytical weights:
 
 SOURCE A - OPEN SOURCE NEWS & THINK TANK ANALYSIS [PRIMARY WEIGHT - 70-80% of analysis]
@@ -208,6 +236,15 @@ Respond ONLY with valid JSON:
     ],
     "overall_assessment": "High|Medium-High|Medium|Medium-Low|Low",
     "overall_assessment_text": "2-3 sentence bottom line on China's economic health and trajectory, including key risks and opportunities."
+  },
+  "tailored_section": {
+    "role_relevance": "2-3 sentences on what this brief's most important findings mean specifically for this analyst's role and mission. Omit if no profile set.",
+    "priority_topic_highlights": [
+      { "topic": "Topic from analyst priority list", "finding": "What this brief found on this specific topic", "implication": "Operational or mission implication for this analyst" }
+    ],
+    "recommended_actions": [
+      "Specific action or follow-up this analyst should consider given their role"
+    ]
   },
   "think_tank_sources": [
     {
