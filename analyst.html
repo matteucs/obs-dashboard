@@ -508,6 +508,27 @@
   .thinktank-link { font-size: 11px; color: var(--info); text-decoration: none; display: inline-block; margin-top: 4px; }
   .thinktank-link:hover { text-decoration: underline; }
 
+
+  /* Profile */
+  .profile-topic-pill {
+    font-size: 11px; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--text2); cursor: pointer; font-family: var(--font-mono);
+    transition: all 0.15s;
+  }
+  .profile-topic-pill:hover { background: var(--bg3); color: var(--text); }
+  .profile-topic-pill.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .brief-tailored { background: rgba(107,79,42,0.06); border: 1px solid rgba(107,79,42,0.2); border-left: 3px solid var(--accent); border-radius: 0 var(--radius-lg) var(--radius-lg) 0; padding: 16px 20px; margin-bottom: 20px; }
+  .brief-tailored-label { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+  .brief-tailored-text { font-size: 13px; color: var(--text); line-height: 1.7; margin-bottom: 10px; }
+  .brief-tailored-actions { display: flex; flex-direction: column; gap: 6px; }
+  .brief-tailored-action { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .brief-tailored-action-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 5px; }
+  .brief-tailored-highlight { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 8px; }
+  .brief-tailored-highlight-topic { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .brief-tailored-highlight-finding { font-size: 12px; color: var(--text); margin-bottom: 3px; }
+  .brief-tailored-highlight-impl { font-size: 11px; color: var(--text3); }
+
   @media (max-width: 900px) {
     .sidebar { display: none; }
     .metrics { grid-template-columns: repeat(2, 1fr); }
@@ -694,6 +715,7 @@
       <button class="main-tab active" id="tab-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
       <button class="main-tab" id="tab-news" onclick="switchTab('news')">Daily News Digest</button>
       <button class="main-tab" id="tab-brief" onclick="switchTab('brief')">Bullpen Brief</button>
+      <button class="main-tab" id="tab-profile" onclick="switchTab('profile')">Analyst Profile</button>
     </div>
 
     <!-- Dashboard view -->
@@ -903,6 +925,136 @@
       </div>
       <div id="brief-content"></div>
     </div><!-- end view-brief -->
+
+    <!-- Profile view -->
+    <div id="view-profile" style="display:none">
+      <div class="news-header">
+        <div>
+          <div class="page-title">Analyst <em>Profile</em></div>
+          <div class="page-date">Your profile tailors every brief to your role and mission</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" onclick="saveProfile()" id="profile-save-btn">Save profile</button>
+        </div>
+      </div>
+
+      <div id="profile-banner" style="display:none;margin-bottom:16px;padding:10px 16px;border-radius:var(--radius);font-size:13px;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Identity & Role</div>
+
+          <div class="field" style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px">Name / Callsign</label>
+            <input type="text" id="prof-name" placeholder="e.g. Maj. Smith / Viper" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:13px;padding:9px 12px;outline:none;" />
+          </div>
+
+          <div class="field" style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px">Role / Title</label>
+            <input type="text" id="prof-role" placeholder="e.g. Intelligence Officer, China Analyst, INDOPACOM J2" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:13px;padding:9px 12px;outline:none;" />
+          </div>
+
+          <div class="field" style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px">Unit / Organization</label>
+            <input type="text" id="prof-unit" placeholder="e.g. 25th Intelligence Squadron, PACAF A2" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:13px;padding:9px 12px;outline:none;" />
+          </div>
+
+          <div class="field">
+            <label style="font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px">Command / MAJCOM</label>
+            <select id="prof-command" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:13px;padding:9px 12px;outline:none;cursor:pointer;">
+              <option value="">Select command...</option>
+              <option value="INDOPACOM">INDOPACOM</option>
+              <option value="PACAF">PACAF</option>
+              <option value="ACC">ACC — Air Combat Command</option>
+              <option value="AMC">AMC — Air Mobility Command</option>
+              <option value="AFSOC">AFSOC — Special Operations Command</option>
+              <option value="AFGSC">AFGSC — Global Strike Command</option>
+              <option value="AFMC">AFMC — Materiel Command</option>
+              <option value="AFSPC">AFSPC — Space Command</option>
+              <option value="AF/A2">AF/A2 — Air Force Intelligence</option>
+              <option value="DIA">DIA — Defense Intelligence Agency</option>
+              <option value="NSA">NSA / Cyber Command</option>
+              <option value="OSD">OSD / Joint Staff</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Mission & Focus</div>
+
+          <div class="field" style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px">Primary Mission Area</label>
+            <select id="prof-mission" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:13px;padding:9px 12px;outline:none;cursor:pointer;">
+              <option value="">Select mission area...</option>
+              <option value="All-source intelligence analysis">All-source intelligence analysis</option>
+              <option value="SIGINT / cyber intelligence">SIGINT / cyber intelligence</option>
+              <option value="GEOINT / imagery analysis">GEOINT / imagery analysis</option>
+              <option value="HUMINT operations">HUMINT operations</option>
+              <option value="Counterintelligence">Counterintelligence</option>
+              <option value="Air operations / strike planning">Air operations / strike planning</option>
+              <option value="Space & cyber operations">Space & cyber operations</option>
+              <option value="Nuclear deterrence">Nuclear deterrence</option>
+              <option value="Special operations">Special operations</option>
+              <option value="Acquisition & technology security">Acquisition & technology security</option>
+              <option value="Policy & strategy">Policy & strategy</option>
+              <option value="Logistics & sustainment">Logistics & sustainment</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="field" style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px">Geographic AOR</label>
+            <select id="prof-aor" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:13px;padding:9px 12px;outline:none;cursor:pointer;">
+              <option value="">Select AOR...</option>
+              <option value="Indo-Pacific (INDOPACOM)">Indo-Pacific (INDOPACOM)</option>
+              <option value="Taiwan Strait">Taiwan Strait</option>
+              <option value="South China Sea">South China Sea</option>
+              <option value="East China Sea">East China Sea</option>
+              <option value="Korean Peninsula">Korean Peninsula</option>
+              <option value="Southeast Asia">Southeast Asia</option>
+              <option value="Global / Worldwide">Global / Worldwide</option>
+              <option value="CONUS / Homeland">CONUS / Homeland</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label style="font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px">Priority Topics <span style="color:var(--text3);font-weight:400;text-transform:none">(select all that apply)</span></label>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px" id="priority-topics-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Key Intelligence Questions</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.5">What are the most important questions your work needs answered about China? These will directly shape the focus of every brief.</div>
+          <textarea id="prof-key-questions" placeholder="e.g. What is the PLA's current readiness posture in the Taiwan Strait? What are China's intentions regarding disputed South China Sea features? How is China's hypersonic missile program progressing?..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:10px 12px;outline:none;resize:vertical;min-height:120px;line-height:1.6;"></textarea>
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Operational Context</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.5">Describe your current operational context, ongoing tasks, or anything that helps tailor analysis to your immediate needs.</div>
+          <textarea id="prof-operational-context" placeholder="e.g. Currently supporting exercise planning for COPE NORTH. Tracking PLA Navy surface action group movements. Preparing threat assessment for F-35 deployment to Kadena..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:10px 12px;outline:none;resize:vertical;min-height:120px;line-height:1.6;"></textarea>
+        </div>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;margin-bottom:20px">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Additional Tailoring Notes</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.5">Any other instructions for how the brief should be customized — preferred analytical frameworks, terminology, depth of technical detail, or specific formats your leadership expects.</div>
+        <textarea id="prof-tailoring-notes" placeholder="e.g. My leadership wants specific focus on PLA Air Force and rocket force activities. Always include implications for basing at Kadena, Misawa, and Andersen. Flag anything relevant to A2/AD threat to fifth-gen aircraft. Use standard AF intelligence production terminology..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:10px 12px;outline:none;resize:vertical;min-height:80px;line-height:1.6;"></textarea>
+      </div>
+
+      <!-- Profile preview -->
+      <div id="profile-preview" style="display:none;background:rgba(107,79,42,0.06);border:1px solid rgba(107,79,42,0.2);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:20px">
+        <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">Active profile — applied to all briefs</div>
+        <div id="profile-preview-text" style="font-size:12px;color:var(--text2);line-height:1.7"></div>
+      </div>
+
+    </div><!-- end view-profile -->
+
   </main>
 </div>
 
@@ -1598,14 +1750,15 @@ Only include groups with 2 or more submissions. If no meaningful similarities ex
   };
 
   function switchTab(tab) {
-    document.getElementById('view-dashboard').style.display = tab === 'dashboard' ? 'block' : 'none';
-    document.getElementById('view-news').style.display = tab === 'news' ? 'block' : 'none';
-    document.getElementById('view-brief').style.display = tab === 'brief' ? 'block' : 'none';
-    document.getElementById('tab-dashboard').classList.toggle('active', tab === 'dashboard');
-    document.getElementById('tab-news').classList.toggle('active', tab === 'news');
-    document.getElementById('tab-brief').classList.toggle('active', tab === 'brief');
-    if (tab === 'news') initNews();
-    if (tab === 'brief') initBrief();
+    ['dashboard','news','brief','profile'].forEach(t => {
+      const v = document.getElementById('view-' + t);
+      const b = document.getElementById('tab-' + t);
+      if (v) v.style.display = t === tab ? 'block' : 'none';
+      if (b) b.classList.toggle('active', t === tab);
+    });
+    if (tab === 'news')    initNews();
+    if (tab === 'brief')   initBrief();
+    if (tab === 'profile') initProfile();
   }
 
   function setNewsGroup(group, el) {
@@ -2151,6 +2304,166 @@ For the Technology category specifically: cover a BROAD range of technology doma
     a.download = `china_bullpen_${b._type || activeBriefType}_brief_${(b._period_label||'').replace(/[^a-z0-9]/gi,'_').toLowerCase()}.txt`;
     a.click();
     showToast('Brief exported.');
+  }
+
+
+  // ── Analyst Profile ───────────────────────────────────────
+  const PRIORITY_TOPICS = [
+    'PLA Air Force', 'PLA Navy', 'PLA Rocket Force', 'PLA Ground Forces',
+    'Taiwan Strait', 'South China Sea', 'A2/AD Threat', 'Hypersonics',
+    'Nuclear Posture', 'Space & Counter-space', 'Cyber Operations',
+    'Semiconductors', 'EW / Electronic Warfare', 'ISR Capabilities',
+    'C2 Networks', 'Logistics & Sustainment', 'Economic Coercion',
+    'United Front / Influence Ops', 'BRI / Port Access', 'Technology Transfer',
+    'Export Controls', 'Allied Coordination', 'PLAAF Basing',
+  ];
+
+  let selectedTopics = [];
+  let currentProfile = null;
+
+  function initProfileTopics() {
+    const container = document.getElementById('priority-topics-list');
+    if (!container) return;
+    container.innerHTML = PRIORITY_TOPICS.map(t =>
+      `<button class="profile-topic-pill${selectedTopics.includes(t) ? ' selected' : ''}" onclick="toggleTopic('${t}')">${t}</button>`
+    ).join('');
+  }
+
+  function toggleTopic(topic) {
+    if (selectedTopics.includes(topic)) {
+      selectedTopics = selectedTopics.filter(t => t !== topic);
+    } else {
+      selectedTopics.push(topic);
+    }
+    initProfileTopics();
+  }
+
+  async function initProfile() {
+    try {
+      const res = await fetch(PROXY_URL + '?action=getProfile');
+      const data = await res.json();
+      if (data?.data) {
+        currentProfile = data.data;
+        populateProfileForm(currentProfile);
+        renderProfilePreview(currentProfile);
+      }
+    } catch(e) {
+      console.error('Failed to load profile:', e);
+    }
+    initProfileTopics();
+  }
+
+  function populateProfileForm(p) {
+    if (!p) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    set('prof-name', p.name);
+    set('prof-role', p.role);
+    set('prof-unit', p.unit);
+    set('prof-command', p.command);
+    set('prof-mission', p.mission_area);
+    set('prof-aor', p.aor);
+    set('prof-key-questions', p.key_questions);
+    set('prof-operational-context', p.operational_context);
+    set('prof-tailoring-notes', p.tailoring_notes);
+    if (p.priority_topics) { selectedTopics = p.priority_topics; initProfileTopics(); }
+  }
+
+  function getProfileData() {
+    return {
+      name:               document.getElementById('prof-name')?.value.trim() || '',
+      role:               document.getElementById('prof-role')?.value.trim() || '',
+      unit:               document.getElementById('prof-unit')?.value.trim() || '',
+      command:            document.getElementById('prof-command')?.value || '',
+      mission_area:       document.getElementById('prof-mission')?.value || '',
+      aor:                document.getElementById('prof-aor')?.value || '',
+      priority_topics:    selectedTopics,
+      key_questions:      document.getElementById('prof-key-questions')?.value.trim() || '',
+      operational_context: document.getElementById('prof-operational-context')?.value.trim() || '',
+      tailoring_notes:    document.getElementById('prof-tailoring-notes')?.value.trim() || '',
+      updated_at:         new Date().toISOString(),
+    };
+  }
+
+  function renderProfilePreview(p) {
+    const preview = document.getElementById('profile-preview');
+    const text = document.getElementById('profile-preview-text');
+    if (!preview || !text || !p) return;
+    const parts = [];
+    if (p.name) parts.push(`<strong>${p.name}</strong>`);
+    if (p.role) parts.push(p.role);
+    if (p.unit) parts.push(p.unit);
+    if (p.command) parts.push(p.command);
+    if (p.aor) parts.push(`AOR: ${p.aor}`);
+    if (p.mission_area) parts.push(`Mission: ${p.mission_area}`);
+    if (p.priority_topics?.length) parts.push(`Priority topics: ${p.priority_topics.join(', ')}`);
+    text.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+    preview.style.display = parts.length ? 'block' : 'none';
+  }
+
+  async function saveProfile() {
+    const btn = document.getElementById('profile-save-btn');
+    const banner = document.getElementById('profile-banner');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    const profileData = getProfileData();
+
+    try {
+      const res = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'saveProfile', payload: profileData })
+      });
+      if (!res.ok) throw new Error('Save failed');
+      currentProfile = profileData;
+      renderProfilePreview(currentProfile);
+      banner.style.display = 'block';
+      banner.style.background = 'rgba(39,113,74,0.08)';
+      banner.style.border = '1px solid rgba(39,113,74,0.25)';
+      banner.style.color = '#27714a';
+      banner.textContent = 'Profile saved. Your next brief will be tailored to your role.';
+      setTimeout(() => banner.style.display = 'none', 4000);
+    } catch(e) {
+      banner.style.display = 'block';
+      banner.style.background = 'rgba(192,57,43,0.08)';
+      banner.style.border = '1px solid rgba(192,57,43,0.25)';
+      banner.style.color = '#c0392b';
+      banner.textContent = 'Failed to save profile. Please try again.';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Save profile';
+  }
+
+  function renderTailoredSection(tailored) {
+    if (!tailored || !tailored.role_relevance) return '';
+    let html = `<div class="brief-tailored">
+      <div class="brief-tailored-label">&#9670; Tailored to your role</div>
+      <div class="brief-tailored-text">${tailored.role_relevance}</div>`;
+
+    if (tailored.priority_topic_highlights?.length) {
+      html += `<div style="margin-bottom:10px">`;
+      for (const h of tailored.priority_topic_highlights) {
+        html += `<div class="brief-tailored-highlight">
+          <div class="brief-tailored-highlight-topic">${h.topic}</div>
+          <div class="brief-tailored-highlight-finding">${h.finding}</div>
+          <div class="brief-tailored-highlight-impl">${h.implication}</div>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    if (tailored.recommended_actions?.length) {
+      html += `<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Recommended actions</div>
+        <div class="brief-tailored-actions">`;
+      for (const a of tailored.recommended_actions) {
+        html += `<div class="brief-tailored-action"><div class="brief-tailored-action-dot"></div>${a}</div>`;
+      }
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+    return html;
   }
 
   // ── Folder state ─────────────────────────────────────────
