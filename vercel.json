@@ -4,16 +4,22 @@
     { "src": "index.html",    "use": "@vercel/static" },
     { "src": "submit.html",   "use": "@vercel/static" },
     { "src": "analyst.html",  "use": "@vercel/static" },
+    { "src": "brief.html",    "use": "@vercel/static" },
     { "src": "api/proxy.js",          "use": "@vercel/node" },
     { "src": "api/auth.js",           "use": "@vercel/node" },
+    { "src": "api/brief-auth.js",     "use": "@vercel/node" },
+    { "src": "api/profile.js",        "use": "@vercel/node" },
     { "src": "api/generate-brief.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/proxy",          "dest": "/api/proxy.js" },
     { "src": "/api/auth",           "dest": "/api/auth.js" },
+    { "src": "/api/brief-auth",     "dest": "/api/brief-auth.js" },
+    { "src": "/api/profile",        "dest": "/api/profile.js" },
     { "src": "/api/generate-brief", "dest": "/api/generate-brief.js" },
     { "src": "/submit.html",        "dest": "/submit.html" },
     { "src": "/analyst.html",       "dest": "/analyst.html" },
+    { "src": "/brief.html",         "dest": "/brief.html" },
     { "src": "/(.*)",               "dest": "/index.html" }
   ],
   "crons": [
