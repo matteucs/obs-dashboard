@@ -677,7 +677,7 @@ For the Technology category: cover a BROAD range of technology domains — do NO
     try {
       const response = await fetch(PROXY_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'analyze', payload: { model: 'claude-sonnet-4-5-20251022', max_tokens: 4000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: prompt }] } })
+        body: JSON.stringify({ action: 'analyze', payload: { model: 'claude-sonnet-4-6', max_tokens: 4000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: prompt }] } })
       });
       if (!response.ok) throw new Error('API error ' + response.status);
       const data = await response.json();
