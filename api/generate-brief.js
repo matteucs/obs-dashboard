@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const authHeader = req.headers.authorization;
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end();
 
