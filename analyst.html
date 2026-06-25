@@ -1223,7 +1223,7 @@ Return JSON with exactly these fields:
       body: JSON.stringify({
         action: 'analyze',
         payload: {
-          model: 'claude-sonnet-4-6',
+          model: 'claude-sonnet-4-5-20251022',
           max_tokens: 1000,
           messages: [{ role: 'user', content: prompt }]
         }
@@ -1329,14 +1329,15 @@ Only include groups with 2 or more submissions. If no meaningful similarities ex
         body: JSON.stringify({
           action: 'analyze',
           payload: {
-            model: 'claude-sonnet-4-6',
+            model: 'claude-sonnet-4-5-20251022',
             max_tokens: 1000,
             messages: [{ role: 'user', content: prompt }]
           }
         })
       });
-      if (!response.ok) throw new Error('API error');
+      if (!response.ok) throw new Error('API error ' + response.status);
       const data = await response.json();
+      console.log('API response blocks:', data.content?.map(b => b.type));
       const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
       similarGroups = JSON.parse(text);
     } catch(e) {
@@ -1828,9 +1829,9 @@ For the Technology category specifically: cover a BROAD range of technology doma
         body: JSON.stringify({
           action: 'analyze',
           payload: {
-            model: 'claude-sonnet-4-6',
+            model: 'claude-sonnet-4-5-20251022',
             max_tokens: 4000,
-            tools: [{ type: 'web_search_20260209', name: 'web_search' }],
+            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
             messages: [{ role: 'user', content: prompt }]
           }
         })
@@ -1853,6 +1854,17 @@ For the Technology category specifically: cover a BROAD range of technology doma
         }
       }
 
+      // If no clean JSON found, try to extract from full response text
+      if (!jsonText) {
+        const allText = (data.content || [])
+          .filter(b => b.type === 'text')
+          .map(b => b.text || '')
+          .join('');
+        const match = allText.match(/\{[\s\S]*\}/);
+        if (match) {
+          try { JSON.parse(match[0]); jsonText = match[0]; } catch(e) {}
+        }
+      }
       if (!jsonText) throw new Error('No valid JSON in response');
       newsDigest = JSON.parse(jsonText);
       newsDigest.date = new Date().toISOString().split('T')[0];
