@@ -1223,7 +1223,7 @@ Return JSON with exactly these fields:
       body: JSON.stringify({
         action: 'analyze',
         payload: {
-          model: 'claude-sonnet-4-5-20251022',
+          model: 'claude-sonnet-4-6',
           max_tokens: 1000,
           messages: [{ role: 'user', content: prompt }]
         }
@@ -1329,7 +1329,7 @@ Only include groups with 2 or more submissions. If no meaningful similarities ex
         body: JSON.stringify({
           action: 'analyze',
           payload: {
-            model: 'claude-sonnet-4-5-20251022',
+            model: 'claude-sonnet-4-6',
             max_tokens: 1000,
             messages: [{ role: 'user', content: prompt }]
           }
@@ -1829,7 +1829,7 @@ For the Technology category specifically: cover a BROAD range of technology doma
         body: JSON.stringify({
           action: 'analyze',
           payload: {
-            model: 'claude-sonnet-4-5-20251022',
+            model: 'claude-sonnet-4-6',
             max_tokens: 4000,
             tools: [{ type: 'web_search_20250305', name: 'web_search' }],
             messages: [{ role: 'user', content: prompt }]
