@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -7,10 +7,6 @@ export default async function handler(req, res) {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
-  let body = req.body;
-  if (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) {} }
-
-  // ── GET profile ────────────────────────────────────────────
   if (req.method === 'GET') {
     const userId = req.query.userId;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
@@ -21,8 +17,9 @@ export default async function handler(req, res) {
     return res.status(200).json(rows?.[0]?.data || null);
   }
 
-  // ── SAVE profile ───────────────────────────────────────────
   if (req.method === 'POST') {
+    let body = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) {} }
     const { userId, profileData } = body || {};
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
     const r = await fetch(`${SUPABASE_URL}/rest/v1/analyst_profiles`, {
@@ -38,4 +35,4 @@ export default async function handler(req, res) {
   }
 
   return res.status(405).end();
-}
+};
