@@ -677,17 +677,40 @@ For the Technology category: cover a BROAD range of technology domains — do NO
     try {
       const response = await fetch(PROXY_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'analyze', payload: { model: 'claude-sonnet-4-6', max_tokens: 4000, tools: [{ type: 'web_search_20260209', name: 'web_search' }], messages: [{ role: 'user', content: prompt }] } })
+        body: JSON.stringify({ action: 'analyze', payload: { model: 'claude-sonnet-4-5-20251022', max_tokens: 4000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: prompt }] } })
       });
-      if (!response.ok) throw new Error('API error');
+      if (!response.ok) throw new Error('API error ' + response.status);
       const data = await response.json();
+      console.log('API response blocks:', data.content?.map(b => b.type));
       let jsonText = null;
       for (const block of (data.content || [])) {
         if (block.type === 'text' && block.text) {
+          // Try full text cleaned
           const cleaned = block.text.trim().replace(/```json|```/g, '').trim();
           try { JSON.parse(cleaned); jsonText = cleaned; break; } catch(e) {}
-          const match = cleaned.match(/\{[\s\S]*\}/);
-          if (match) { try { JSON.parse(match[0]); jsonText = match[0]; break; } catch(e) {} }
+          // Try first JSON object
+          const match1 = cleaned.match(/\{[\s\S]*\}/);
+          if (match1) { try { JSON.parse(match1[0]); jsonText = match1[0]; break; } catch(e) {} }
+          // Try finding JSON after a newline
+          const lines = cleaned.split('\n');
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('{')) {
+              try { JSON.parse(trimmed); jsonText = trimmed; break; } catch(e) {}
+            }
+          }
+          if (jsonText) break;
+        }
+      }
+      // If no clean JSON found, try to extract from full response text
+      if (!jsonText) {
+        const allText = (data.content || [])
+          .filter(b => b.type === 'text')
+          .map(b => b.text || '')
+          .join('');
+        const match = allText.match(/\{[\s\S]*\}/);
+        if (match) {
+          try { JSON.parse(match[0]); jsonText = match[0]; } catch(e) {}
         }
       }
       if (!jsonText) throw new Error('No valid JSON in response');
