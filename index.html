@@ -671,447 +671,66 @@
     document.getElementById('news-content').innerHTML = '';
     document.getElementById('news-refresh-btn').disabled = true;
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('news-date-label').textContent = today;
+
     const prompt = `Today is ${today}. You are a China analyst. Search for and summarize today's most important news stories about China across four categories: Politics, Military, Technology, and Economy. For each category, provide 4-6 of the most significant stories from today or the last 24 hours.
 
-For the Technology category: cover a BROAD range of technology domains — do NOT focus primarily on AI. Include stories across semiconductors & chip manufacturing, space & aerospace, 5G/6G telecom, quantum computing, biotechnology & genomics, green energy tech (solar, EVs, batteries), nuclear technology, robotics & automation, cybersecurity, undersea cables, and dual-use military-civilian tech. AI may appear as one story but should not dominate. Respond ONLY with valid JSON: { "date": "${new Date().toISOString().split('T')[0]}", "generated": "${new Date().toISOString()}", "categories": { "Politics": [{ "headline": "...", "summary": "1-2 sentence summary.", "source": "Source name", "url": "https://...", "significance": "High|Medium|Low" }], "Military": [...], "Technology": [...], "Economy": [...] } }`;
+For the Technology category: cover a BROAD range of technology domains — do NOT focus primarily on AI. Include stories across semiconductors & chip manufacturing, space & aerospace, 5G/6G telecom, quantum computing, biotechnology & genomics, green energy tech (solar, EVs, batteries), nuclear technology, robotics & automation, cybersecurity, undersea cables, and dual-use military-civilian tech. AI may appear as one story but should not dominate.
+
+Respond ONLY with valid JSON, no markdown fences, no explanation, just the raw JSON object:
+{ "date": "${new Date().toISOString().split('T')[0]}", "generated": "${new Date().toISOString()}", "categories": { "Politics": [{ "headline": "...", "summary": "1-2 sentence summary.", "source": "Source name", "url": "https://...", "significance": "High|Medium|Low" }], "Military": [...], "Technology": [...], "Economy": [...] } }`;
+
     try {
       const response = await fetch(PROXY_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'analyze', payload: { model: 'claude-sonnet-4-6', max_tokens: 4000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: prompt }] } })
+        body: JSON.stringify({ action: 'analyze', payload: {
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          messages: [{ role: 'user', content: prompt }]
+        }})
       });
       if (!response.ok) throw new Error('API error ' + response.status);
       const data = await response.json();
       console.log('API response blocks:', data.content?.map(b => b.type));
+
+      // Extract JSON from any text block in the response
       let jsonText = null;
-      for (const block of (data.content || [])) {
+      const allBlocks = (data.content || []);
+
+      for (const block of allBlocks) {
         if (block.type === 'text' && block.text) {
-          // Try full text cleaned
-          const cleaned = block.text.trim().replace(/```json|```/g, '').trim();
+          const raw = block.text.trim();
+          // Remove markdown fences
+          const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+          // Try the whole thing
           try { JSON.parse(cleaned); jsonText = cleaned; break; } catch(e) {}
-          // Try first JSON object
-          const match1 = cleaned.match(/\{[\s\S]*\}/);
-          if (match1) { try { JSON.parse(match1[0]); jsonText = match1[0]; break; } catch(e) {} }
-          // Try finding JSON after a newline
-          const lines = cleaned.split('\n');
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('{')) {
-              try { JSON.parse(trimmed); jsonText = trimmed; break; } catch(e) {}
-            }
+          // Try extracting JSON object
+          const m1 = cleaned.match(/\{[\s\S]*\}/);
+          if (m1) { try { JSON.parse(m1[0]); jsonText = m1[0]; break; } catch(e) {} }
+          // Try from first { to last }
+          const firstBrace = cleaned.indexOf('{');
+          const lastBrace = cleaned.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            const slice = cleaned.slice(firstBrace, lastBrace + 1);
+            try { JSON.parse(slice); jsonText = slice; break; } catch(e) {}
           }
-          if (jsonText) break;
         }
       }
-      // If no clean JSON found, try to extract from full response text
+
       if (!jsonText) {
-        const allText = (data.content || [])
-          .filter(b => b.type === 'text')
-          .map(b => b.text || '')
-          .join('');
-        const match = allText.match(/\{[\s\S]*\}/);
-        if (match) {
-          try { JSON.parse(match[0]); jsonText = match[0]; } catch(e) {}
-        }
+        console.error('Raw API response:', JSON.stringify(data.content?.map(b => ({type: b.type, text: b.type === 'text' ? b.text?.slice(0,200) : undefined}))));
+        throw new Error('No valid JSON in response');
       }
-      if (!jsonText) throw new Error('No valid JSON in response');
+
       newsDigest = JSON.parse(jsonText);
       newsDigest.date = new Date().toISOString().split('T')[0];
       localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(newsDigest));
       renderNewsContent();
     } catch(e) {
+      console.error('fetchNews error:', e);
       document.getElementById('news-content').innerHTML = `<div class="news-empty"><div class="news-empty-big">Could not load news</div><div>${e.message}</div></div>`;
     }
     document.getElementById('news-loading').style.display = 'none';
     document.getElementById('news-refresh-btn').disabled = false;
   }
-
-  function renderNewsContent() {
-    if (!newsDigest) return;
-    const groups = ['Politics', 'Military', 'Technology', 'Economy'];
-    const toShow = activeNewsGroup === 'all' ? groups : [activeNewsGroup];
-    const generated = newsDigest.generated ? new Date(newsDigest.generated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
-    let html = generated ? `<div class="news-last-updated">Last updated at ${generated}</div>` : '';
-    for (const group of toShow) {
-      const items = newsDigest.categories?.[group] || [];
-      const colors = GROUP_COLORS[group];
-      html += `<div class="news-group-section"><div class="news-group-title"><div class="news-group-dot" style="background:${colors.dot}"></div><span class="news-group-name">${group}</span><span class="news-group-count">${items.length} stories</span></div><div class="news-cards">`;
-      if (!items.length) { html += `<div style="font-size:12px;color:var(--text3);padding:8px 0;">No stories found.</div>`; }
-      else {
-        for (const item of items) {
-          const sigColor = item.significance === 'High' ? 'var(--high)' : item.significance === 'Medium' ? 'var(--med)' : 'var(--text3)';
-          html += `<div class="news-card"><div class="news-card-top"><div class="news-headline">${item.headline}</div><div class="news-meta"><span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${colors.badge};color:${colors.text};border:1px solid ${colors.border};font-weight:500;text-transform:uppercase;letter-spacing:0.04em">${group}</span>${item.significance ? `<span style="font-size:11px;color:${sigColor};font-weight:500">${item.significance}</span>` : ''}</div></div><div class="news-summary">${item.summary}</div><div style="margin-top:8px">${item.url ? `<a class="news-link" href="${item.url}" target="_blank" rel="noopener noreferrer">${item.source || 'Read article'} &#8599;</a>` : item.source ? `<span style="font-size:11px;color:var(--text3)">${item.source}</span>` : ''}</div></div>`;
-        }
-      }
-      html += `</div></div>`;
-    }
-    document.getElementById('news-content').innerHTML = html;
-  }
-
-  // ── Brief ───────────────────────────────────────────────────
-  async function initBrief() {
-    document.getElementById('brief-date-label').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    await loadBriefs(activeBriefType);
-  }
-
-  function setBriefType(type, el) {
-    activeBriefType = type;
-    document.querySelectorAll('.brief-type-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    loadBriefs(type);
-  }
-
-  async function loadBriefs(type) {
-    document.getElementById('brief-loading').style.display = 'block';
-    document.getElementById('brief-content').innerHTML = '';
-    try {
-      const res = await fetch(`${PROXY_URL}?action=listBriefs&type=${type}`);
-      const data = await res.json();
-      allBriefs = Array.isArray(data) ? data : [];
-    } catch(e) { allBriefs = []; }
-    document.getElementById('brief-loading').style.display = 'none';
-    const sel = document.getElementById('brief-history-select');
-    sel.innerHTML = '<option value="">Select a past brief...</option>' + allBriefs.map(b => `<option value="${b.id}">${b.period_label}</option>`).join('');
-    if (allBriefs.length) {
-      currentBrief = allBriefs[0].content;
-      currentBrief._period_label = allBriefs[0].period_label;
-      currentBrief._type = allBriefs[0].type;
-      sel.value = allBriefs[0].id;
-      renderBrief();
-    } else {
-      document.getElementById('brief-content').innerHTML = `<div class="brief-empty"><div class="brief-empty-big">No ${type} briefs available yet</div><div style="font-size:13px;color:var(--text3);margin-top:8px">Briefs are generated automatically on a daily, weekly, monthly, and yearly schedule.</div></div>`;
-    }
-  }
-
-  function loadBriefById(id) {
-    if (!id) return;
-    const b = allBriefs.find(x => x.id === id);
-    if (b) { currentBrief = b.content; currentBrief._period_label = b.period_label; currentBrief._type = b.type; renderBrief(); }
-  }
-
-
-  function renderEconomicIndicators(econ) {
-    if (!econ) return '';
-    const trendClass = t => {
-      const m = { Rising: 'econ-trend-rising', Falling: 'econ-trend-falling', Stable: 'econ-trend-stable', Uncertain: 'econ-trend-uncertain', Appreciation: 'econ-trend-rising', Depreciation: 'econ-trend-falling' };
-      return m[t] || 'econ-trend-uncertain';
-    };
-    const trendArrow = t => ({ Rising: '&#8679;', Falling: '&#8681;', Stable: '&#8596;', Appreciation: '&#8679;', Depreciation: '&#8681;' }[t] || '&#63;');
-
-    let html = `<div class="econ-section">
-      <div class="econ-header">
-        <div class="econ-icon">&#9654;</div>
-        <div>
-          <div class="econ-title">Economic Indicators</div>
-          <div class="econ-sub">Advanced data — China macroeconomic dashboard${econ.search_date ? ' · ' + econ.search_date : ''}</div>
-        </div>
-      </div>`;
-
-    if (econ.overview) html += `<div class="econ-overview">${econ.overview}</div>`;
-
-    // Key indicators grid
-    if (econ.indicators?.length) {
-      html += `<div class="econ-grid">`;
-      for (const ind of econ.indicators) {
-        html += `<div class="econ-card">
-          <div class="econ-card-label">${ind.name}</div>
-          <div class="econ-card-value">${ind.value}</div>
-          ${ind.previous ? `<div class="econ-card-prev">Prev: ${ind.previous}</div>` : ''}
-          ${ind.trend ? `<div class="econ-card-trend ${trendClass(ind.trend)}">${trendArrow(ind.trend)} ${ind.trend}</div>` : ''}
-          ${ind.interpretation ? `<div class="econ-card-interp">${ind.interpretation}</div>` : ''}
-        </div>`;
-      }
-      html += `</div>`;
-    }
-
-    // PMI
-    if (econ.pmi) {
-      html += `<div class="econ-block"><div class="econ-block-title">Purchasing Managers Index (PMI)</div>
-        <div class="econ-row"><span class="econ-row-label">Manufacturing PMI</span><span class="econ-row-val">${econ.pmi.manufacturing || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Services PMI</span><span class="econ-row-val">${econ.pmi.services || '—'}</span></div>
-        ${econ.pmi.interpretation ? `<div class="econ-interp">${econ.pmi.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    // Trade
-    if (econ.trade) {
-      html += `<div class="econ-block"><div class="econ-block-title">Trade & Current Account</div>
-        <div class="econ-row"><span class="econ-row-label">Exports YoY</span><span class="econ-row-val">${econ.trade.exports || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Imports YoY</span><span class="econ-row-val">${econ.trade.imports || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Trade surplus</span><span class="econ-row-val">${econ.trade.surplus || '—'}</span></div>
-        ${econ.trade.key_partners ? `<div class="econ-row"><span class="econ-row-label">Key partners</span><span class="econ-row-val" style="text-align:right;max-width:60%;font-weight:400">${econ.trade.key_partners}</span></div>` : ''}
-        ${econ.trade.interpretation ? `<div class="econ-interp">${econ.trade.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    // Two column: currency + inflation
-    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">`;
-
-    if (econ.currency) {
-      html += `<div class="econ-block"><div class="econ-block-title">Currency (RMB/CNY)</div>
-        <div class="econ-row"><span class="econ-row-label">USD/CNY</span><span class="econ-row-val">${econ.currency.usd_cny || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Trend</span><span class="econ-row-val"><span class="econ-card-trend ${trendClass(econ.currency.trend)}" style="display:inline-flex">${trendArrow(econ.currency.trend)} ${econ.currency.trend || '—'}</span></span></div>
-        ${econ.currency.pboc_action ? `<div class="econ-row"><span class="econ-row-label">PBOC</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.currency.pboc_action}</span></div>` : ''}
-        ${econ.currency.interpretation ? `<div class="econ-interp">${econ.currency.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    if (econ.inflation) {
-      html += `<div class="econ-block"><div class="econ-block-title">Inflation</div>
-        <div class="econ-row"><span class="econ-row-label">CPI</span><span class="econ-row-val">${econ.inflation.cpi || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">PPI</span><span class="econ-row-val">${econ.inflation.ppi || '—'}</span></div>
-        ${econ.inflation.interpretation ? `<div class="econ-interp">${econ.inflation.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    html += `</div>`;
-
-    // Two column: employment + FDI
-    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">`;
-
-    if (econ.employment) {
-      html += `<div class="econ-block"><div class="econ-block-title">Employment</div>
-        <div class="econ-row"><span class="econ-row-label">Urban unemployment</span><span class="econ-row-val">${econ.employment.urban_unemployment || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Youth unemployment</span><span class="econ-row-val">${econ.employment.youth_unemployment || '—'}</span></div>
-        ${econ.employment.interpretation ? `<div class="econ-interp">${econ.employment.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    if (econ.foreign_investment) {
-      html += `<div class="econ-block"><div class="econ-block-title">Foreign Investment (FDI)</div>
-        <div class="econ-row"><span class="econ-row-label">FDI inflows</span><span class="econ-row-val">${econ.foreign_investment.fdi || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Trend</span><span class="econ-row-val"><span class="econ-card-trend ${trendClass(econ.foreign_investment.trend)}" style="display:inline-flex">${trendArrow(econ.foreign_investment.trend)} ${econ.foreign_investment.trend || '—'}</span></span></div>
-        ${econ.foreign_investment.interpretation ? `<div class="econ-interp">${econ.foreign_investment.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    html += `</div>`;
-
-    // Real estate
-    if (econ.real_estate) {
-      html += `<div class="econ-block"><div class="econ-block-title">Real Estate Sector</div>
-        <div class="econ-row"><span class="econ-row-label">Market status</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:65%">${econ.real_estate.status || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Key developers</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:65%">${econ.real_estate.key_developers || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Policy response</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:65%">${econ.real_estate.policy_response || '—'}</span></div>
-        ${econ.real_estate.interpretation ? `<div class="econ-interp">${econ.real_estate.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    // Debt
-    if (econ.debt) {
-      html += `<div class="econ-block"><div class="econ-block-title">Debt & Leverage</div>
-        <div class="econ-row"><span class="econ-row-label">Local government debt</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.debt.local_government || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Corporate debt</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.debt.corporate || '—'}</span></div>
-        <div class="econ-row"><span class="econ-row-label">Household debt</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.debt.household || '—'}</span></div>
-        ${econ.debt.interpretation ? `<div class="econ-interp">${econ.debt.interpretation}</div>` : ''}
-      </div>`;
-    }
-
-    // Forward / alternative indicators
-    if (econ.forward_indicators?.length) {
-      html += `<div class="econ-block-title" style="margin-bottom:8px">Alternative & Forward Indicators</div>
-        <div class="econ-forward">`;
-      for (const fi of econ.forward_indicators) {
-        html += `<div class="econ-forward-item">
-          <div style="flex:1">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-              <div class="econ-forward-name">${fi.name}</div>
-              <div class="econ-forward-val">${fi.value}</div>
-            </div>
-            ${fi.interpretation ? `<div class="econ-forward-interp">${fi.interpretation}</div>` : ''}
-          </div>
-        </div>`;
-      }
-      html += `</div>`;
-    }
-
-    // Overall assessment
-    if (econ.overall_assessment || econ.overall_assessment_text) {
-      html += `<div class="econ-assessment">
-        <div>
-          <div class="econ-assessment-label">Economic health assessment</div>
-          <div class="econ-assessment-val">${econ.overall_assessment || '—'}</div>
-        </div>
-        ${econ.overall_assessment_text ? `<div class="econ-assessment-text">${econ.overall_assessment_text}</div>` : ''}
-      </div>`;
-    }
-
-    html += `</div><hr class="brief-divider">`;
-    return html;
-  }
-
-
-  function renderThinkTankSources(sources) {
-    if (!sources || !sources.length) return '';
-    return `<div class="thinktank-section">
-      <div class="thinktank-title">Think Tank & Policy Sources Used</div>
-      <div class="thinktank-list">
-        ${sources.map(s => `
-          <div class="thinktank-item">
-            <span class="thinktank-org">${s.org || 'Unknown'}</span>
-            <div class="thinktank-content">
-              <div class="thinktank-pub-title">${s.title || 'Untitled publication'}</div>
-              ${s.date ? `<div class="thinktank-date">${s.date}</div>` : ''}
-              ${s.key_finding ? `<div class="thinktank-finding">${s.key_finding}</div>` : ''}
-              ${s.url && s.url !== 'URL if available' ? `<a class="thinktank-link" href="${s.url}" target="_blank" rel="noopener noreferrer">Read publication &#8599;</a>` : ''}
-            </div>
-          </div>`).join('')}
-      </div>
-    </div><hr class="brief-divider">`;
-  }
-
-  function renderBrief() {
-    if (!currentBrief) return;
-    const b = currentBrief;
-    const riskClass = r => r === 'High' ? 'brief-risk-high' : r === 'Medium' ? 'brief-risk-medium' : 'brief-risk-low';
-    const directionArrow = d => d === 'Rising' ? '&#8679;' : d === 'Falling' ? '&#8681;' : d === 'Stable' ? '&#8596;' : '&#63;';
-    const directionColor = d => d === 'Rising' ? '#c0392b' : d === 'Falling' ? '#2d6a4f' : d === 'Stable' ? '#1a5f8a' : '#8a8784';
-    const gen = b.generated ? new Date(b.generated).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-    let html = '';
-    if (b._period_label) html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><span style="font-size:11px;padding:3px 12px;border-radius:20px;background:var(--bg3);color:var(--text3);text-transform:uppercase;letter-spacing:0.08em">${(b._type||activeBriefType).toUpperCase()} BRIEF</span><span style="font-size:13px;color:var(--text2)">${b._period_label}</span></div>`;
-    html += `<div class="brief-meta">${gen ? `<div class="brief-meta-item"><strong>Generated:</strong> ${gen}</div>` : ''}<div class="brief-meta-item"><strong>Overall risk:</strong> <span class="brief-risk ${riskClass(b.overall_risk)}">${b.overall_risk||'—'}</span></div></div>`;
-    if (b.overall_assessment) html += `<div class="brief-overall"><div class="brief-overall-title">Executive assessment</div><div class="brief-overall-text">${b.overall_assessment}</div></div>`;
-    for (const theme of BRIEF_THEMES) {
-      const t = b.themes?.[theme.key];
-      if (!t) continue;
-      html += `<div class="brief-section"><div class="brief-section-header"><div class="brief-section-icon" style="background:${theme.bg};color:${theme.color}">${theme.icon}</div><div><div class="brief-section-title">${theme.label}</div><div class="brief-section-sub">${theme.desc}</div></div><div style="margin-left:auto"><span class="brief-risk ${riskClass(t.risk)}">${t.risk} risk</span></div></div>`;
-      if (t.tldr) html += `<div class="brief-tldr">${t.tldr}</div>`;
-      if (t.analysis) html += `<div class="brief-body">${t.analysis}</div>`;
-      if (t.trends?.length) { html += `<div class="brief-trends">`; for (const tr of t.trends) { const c = directionColor(tr.direction); html += `<div class="brief-trend"><div class="brief-trend-dot" style="background:${c}"></div><div><div class="brief-trend-label" style="color:${c}">${tr.label} <span style="font-weight:400">${directionArrow(tr.direction)} ${tr.direction||''}</span></div><div class="brief-trend-text">${tr.text}</div></div></div>`; } html += `</div>`; }
-      if (t.signals?.length) { html += `<div class="brief-signals">`; for (const s of t.signals) { html += `<div class="brief-signal"><div class="brief-signal-label">${s.label}</div><div class="brief-signal-val">${s.value}</div><div class="brief-signal-desc">${s.desc}</div></div>`; } html += `</div>`; }
-      html += `</div><hr class="brief-divider">`;
-    }
-    // Add think tank sources section
-    if (b.think_tank_sources?.length) {
-      html += renderThinkTankSources(b.think_tank_sources);
-    }
-    // Add economic indicators section if present
-    if (b.economic_indicators) {
-      html += renderEconomicIndicators(b.economic_indicators);
-    }
-    document.getElementById('brief-content').innerHTML = html;
-  }
-
-  // Init
-  initNews();
-
-
-  // ── Submission form ──────────────────────────────────────
-  // Set today's date on load
-  (function() {
-    const d = document.getElementById('f-date');
-    if (d) d.value = new Date().toISOString().split('T')[0];
-  })();
-
-  function updateCharCount() {
-    const val = document.getElementById('f-narrative').value;
-    const el = document.getElementById('char-count');
-    if (!el) return;
-    el.textContent = val.length + ' / 3000';
-    el.classList.toggle('warn', val.length > 2700);
-  }
-
-  function showFormToast(msg) {
-    const t = document.getElementById('form-toast');
-    if (!t) return;
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-  }
-
-  function clearFormErrors() {
-    document.querySelectorAll('.field-error').forEach(e => e.textContent = '');
-    document.querySelectorAll('.invalid').forEach(e => e.classList.remove('invalid'));
-  }
-
-  function setFormError(fieldId, errId, msg) {
-    const f = document.getElementById(fieldId);
-    const e = document.getElementById(errId);
-    if (f) f.classList.add('invalid');
-    if (e) e.textContent = msg;
-  }
-
-  function validateForm() {
-    clearFormErrors();
-    let valid = true;
-    const name      = (document.getElementById('f-name')?.value || '').trim();
-    const date      = document.getElementById('f-date')?.value || '';
-    const narrative = (document.getElementById('f-narrative')?.value || '').trim();
-    if (!name)                    { setFormError('f-name', 'err-name', 'Full name is required.'); valid = false; }
-    if (!date)                    { setFormError('f-date', 'err-date', 'Date is required.'); valid = false; }
-    if (narrative.length < 20)    { setFormError('f-narrative', 'err-narrative', 'Please provide a detailed narrative (at least 20 characters).'); valid = false; }
-    return valid;
-  }
-
-  function resetSubmitForm() {
-    const form = document.getElementById('obs-form');
-    if (form) form.reset();
-    const d = document.getElementById('f-date');
-    if (d) d.value = new Date().toISOString().split('T')[0];
-    const cc = document.getElementById('char-count');
-    if (cc) cc.textContent = '0 / 3000';
-    clearFormErrors();
-    const formEl = document.getElementById('obs-form');
-    const successEl = document.getElementById('success-screen');
-    const btn = document.getElementById('submit-btn');
-    if (formEl) formEl.style.display = 'block';
-    if (successEl) successEl.style.display = 'none';
-    if (btn) { btn.disabled = false; btn.textContent = 'Submit observation'; }
-  }
-
-  async function handleFormSubmit(e) {
-      e.preventDefault();
-      if (!validateForm()) return;
-
-      const btn = document.getElementById('submit-btn');
-      btn.disabled = true;
-      btn.textContent = 'Submitting...';
-
-      const name      = document.getElementById('f-name').value.trim();
-      const date      = document.getElementById('f-date').value;
-      const email     = (document.getElementById('f-email')?.value || '').trim();
-      const phone     = (document.getElementById('f-phone')?.value || '').trim();
-      const narrative = document.getElementById('f-narrative').value.trim();
-      const location  = (document.getElementById('f-location')?.value || '').trim();
-      const contact   = [email, phone].filter(Boolean).join(' / ');
-      const id        = Date.now();
-      const refNumber = 'OBS-' + id.toString().slice(-8).toUpperCase();
-      const fullNarrative = location ? '[' + location + '] ' + narrative : narrative;
-
-      try {
-        const res = await fetch(PROXY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'save',
-            payload: {
-              id,
-              date,
-              name,
-              contact,
-              narrative: fullNarrative,
-              analysis: null,
-              similar_group_index: null,
-              folder_id: null,
-              ref_number: refNumber
-            }
-          })
-        });
-
-        if (!res.ok) throw new Error('Submission failed. Please try again.');
-
-        document.getElementById('obs-form').style.display = 'none';
-        document.getElementById('success-screen').style.display = 'block';
-        const refEl = document.getElementById('success-ref');
-        if (refEl) refEl.textContent = 'Reference number: ' + refNumber;
-
-      } catch(err) {
-        showFormToast(err.message || 'Something went wrong. Please try again.');
-        btn.disabled = false;
-        btn.textContent = 'Submit observation';
-      }
-  }
-
-
-</script>
-</body>
-</html>
