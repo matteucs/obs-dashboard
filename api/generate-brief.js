@@ -166,19 +166,39 @@ Return ONLY raw JSON, no markdown:
     const aiData = await aiRes.json();
     let jsonText = null;
 
-    for (const block of (aiData.content || [])) {
-      if (block.type === 'text' && block.text) {
-        const raw = block.text.trim().replace(/```json|```/g, '').trim();
-        const first = raw.indexOf('{');
-        const last = raw.lastIndexOf('}');
+    // Collect all text from all text blocks (web search may produce multiple)
+    const allText = (aiData.content || [])
+      .filter(b => b.type === 'text' && b.text)
+      .map(b => b.text)
+      .join('\n');
+
+    if (allText) {
+      // Try 1: clean and parse entire combined text
+      const cleaned = allText.trim().replace(/```json|```/g, '').trim();
+      try { JSON.parse(cleaned); jsonText = cleaned; } catch(e) {}
+
+      // Try 2: extract largest JSON object
+      if (!jsonText) {
+        const first = cleaned.indexOf('{');
+        const last = cleaned.lastIndexOf('}');
         if (first !== -1 && last > first) {
-          const candidate = raw.slice(first, last + 1);
-          try { JSON.parse(candidate); jsonText = candidate; break; } catch(e) {}
+          const candidate = cleaned.slice(first, last + 1);
+          try { JSON.parse(candidate); jsonText = candidate; } catch(e) {}
         }
+      }
+
+      // Try 3: find JSON by scanning for opening brace after known keys
+      if (!jsonText) {
+        const keyMatch = cleaned.match(/(\{[\s\S]*?"overall_assessment"[\s\S]*?\})/);
+        if (keyMatch) { try { JSON.parse(keyMatch[1]); jsonText = keyMatch[1]; } catch(e) {} }
       }
     }
 
-    if (!jsonText) throw new Error('No valid JSON from AI');
+    if (!jsonText) {
+      // Log what we got for debugging
+      const preview = (aiData.content||[]).map(b => b.type + (b.type==='text'?':'+b.text.slice(0,100):'')).join(' | ');
+      throw new Error('No valid JSON. Response: ' + preview.slice(0, 200));
+    }
     const briefContent = JSON.parse(jsonText);
 
     await fetch(`${SUPABASE_URL}/rest/v1/briefs`, {
