@@ -1168,7 +1168,7 @@
     sel.innerHTML = '<option value="">Select a past brief...</option>' +
       allBriefs.map(b => `<option value="${b.id}">${b.period_label}</option>`).join('');
 
-    if (allBriefs.length) {
+    if (allBriefs.length && allBriefs[0].content) {
       currentBrief = allBriefs[0].content;
       currentBrief._period_label = allBriefs[0].period_label;
       currentBrief._type = allBriefs[0].type;
