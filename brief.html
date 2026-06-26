@@ -1016,6 +1016,8 @@
     return html + '</div>';
   }
 
+
+
   function renderThinkTankSources(sources) {
     if (!sources?.length) return '';
     return `<div class="thinktank-section"><div class="thinktank-title">Think Tank & Policy Sources Used</div><div class="thinktank-list">${sources.map(s=>`<div class="thinktank-item"><span class="thinktank-org">${s.org||'Unknown'}</span><div class="thinktank-content"><div class="thinktank-pub-title">${s.title||'Untitled'}</div>${s.date?`<div class="thinktank-date">${s.date}</div>`:''} ${s.key_finding?`<div class="thinktank-finding">${s.key_finding}</div>`:''} ${s.url&&s.url!=='URL if available'?`<a class="thinktank-link" href="${s.url}" target="_blank" rel="noopener noreferrer">Read &#8599;</a>`:''}</div></div>`).join('')}</div></div><hr class="brief-divider">`;
@@ -1054,6 +1056,7 @@
     let html = '';
     if (b._period_label) html+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><span style="font-size:11px;padding:3px 12px;border-radius:20px;background:var(--bg3);color:var(--text3);text-transform:uppercase;letter-spacing:0.08em">${(b._type||activeBriefType).toUpperCase()} BRIEF</span><span style="font-size:13px;color:var(--text2)">${b._period_label}</span></div>`;
     html+=`<div class="brief-meta">${gen?`<div class="brief-meta-item"><strong>Generated:</strong> ${gen}</div>`:''}<div class="brief-meta-item"><strong>Overall risk:</strong> <span class="brief-risk ${riskClass(b.overall_risk)}">${b.overall_risk||'—'}</span></div></div>`;
+
     if (b.tailored_section) html += renderTailoredSection(b.tailored_section);
     if (b.overall_assessment) html+=`<div class="brief-overall"><div class="brief-overall-title">Executive assessment</div><div class="brief-overall-text">${b.overall_assessment}</div></div>`;
     for (const theme of BRIEF_THEMES) {
