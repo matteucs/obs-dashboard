@@ -15,7 +15,8 @@ module.exports = async function handler(req, res) {
     yearly:  now.getFullYear().toString(),
   }[briefType] || now.toISOString().split('T')[0];
 
-  const prompt = `China intelligence brief (${briefType}, ${now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}). Cover Economy, Regional, Military, Technology (broad tech: semiconductors, space, 5G, quantum, biotech, EVs, nuclear, robotics, cyber). Be concise. Return ONLY this JSON, no markdown:\n{"overall_assessment":"2 sentences.","overall_risk":"High|Medium|Low","themes":{"economy":{"tldr":"1 sentence.","analysis":"2 sentences.","trends":[{"label":"...","text":"...","direction":"Rising|Falling|Stable|Uncertain"}],"signals":[{"label":"...","value":"...","desc":"..."}],"risk":"High|Medium|Low","field_corroboration":""},"regional":{"tldr":"...","analysis":"...","trends":[{"label":"...","text":"...","direction":"..."}],"signals":[{"label":"...","value":"...","desc":"..."}],"risk":"...","field_corroboration":""},"military":{"tldr":"...","analysis":"...","trends":[{"label":"...","text":"...","direction":"..."}],"signals":[{"label":"...","value":"...","desc":"..."}],"risk":"...","field_corroboration":""},"technology":{"tldr":"...","analysis":"...","trends":[{"label":"...","text":"...","direction":"..."}],"signals":[{"label":"...","value":"...","desc":"..."}],"risk":"...","field_corroboration":""}},"source_count":{"submissions":0,"high_priority_submissions":0}}`;
+  const prompt = `Write a China intelligence brief for ${now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} covering Economy, Regional Goals, Military, Technology. Return ONLY compact JSON no markdown:
+{"overall_assessment":"2 sentences","overall_risk":"High|Medium|Low","themes":{"economy":{"tldr":"1 sentence","analysis":"2 sentences","trends":[{"label":"x","text":"x","direction":"Rising"}],"signals":[{"label":"x","value":"x","desc":"x"}],"risk":"Medium","field_corroboration":""},"regional":{"tldr":"x","analysis":"x","trends":[{"label":"x","text":"x","direction":"Stable"}],"signals":[{"label":"x","value":"x","desc":"x"}],"risk":"Medium","field_corroboration":""},"military":{"tldr":"x","analysis":"x","trends":[{"label":"x","text":"x","direction":"Rising"}],"signals":[{"label":"x","value":"x","desc":"x"}],"risk":"High","field_corroboration":""},"technology":{"tldr":"x","analysis":"x","trends":[{"label":"x","text":"x","direction":"Rising"}],"signals":[{"label":"x","value":"x","desc":"x"}],"risk":"Medium","field_corroboration":""}},"source_count":{"submissions":0,"high_priority_submissions":0}}`;
 
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -27,7 +28,7 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
-        max_tokens: 2000,
+        max_tokens: 1500,
         messages: [{ role: 'user', content: prompt }]
       })
     });
