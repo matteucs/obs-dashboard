@@ -28,7 +28,8 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
-        max_tokens: 1500,
+        max_tokens: 3000,
+        system: 'You are a China analyst. Always return complete, valid JSON. Keep all text values under 100 characters. Never truncate the response.',
         messages: [{ role: 'user', content: prompt }]
       })
     });
