@@ -25,22 +25,32 @@ module.exports = async function handler(req, res) {
         'Content-Type': 'application/json',
         'x-api-key': ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'web-search-2025-03-05',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 3000,
-        system: 'You are a China analyst. Always return complete, valid JSON. Keep all text values under 100 characters. Never truncate the response.',
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
     const aiData = await aiRes.json();
-    const raw = (aiData.content?.[0]?.text || '').trim().replace(/```json|```/g, '').trim();
-    const first = raw.indexOf('{');
-    const last = raw.lastIndexOf('}');
-    if (first === -1 || last === -1) throw new Error('No JSON: ' + raw.slice(0,200));
 
-    let jsonStr = raw.slice(first, last + 1);
+    // Web search returns multiple blocks - collect all text blocks
+    const allText = (aiData.content || [])
+      .filter(b => b.type === 'text' && b.text)
+      .map(b => b.text)
+      .join('\n')
+      .trim()
+      .replace(/```json|```/g, '')
+      .trim();
+
+    const first = allText.indexOf('{');
+    const last = allText.lastIndexOf('}');
+    if (first === -1 || last === -1) throw new Error('No JSON: ' + allText.slice(0,200));
+
+    let jsonStr = allText.slice(first, last + 1);
 
     // Fix common Claude JSON issues
     // 1. Remove trailing commas before } or ]
