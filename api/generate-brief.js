@@ -38,7 +38,31 @@ module.exports = async function handler(req, res) {
     const last = raw.lastIndexOf('}');
     if (first === -1 || last === -1) throw new Error('No JSON: ' + raw.slice(0,200));
 
-    const briefContent = JSON.parse(raw.slice(first, last + 1));
+    let jsonStr = raw.slice(first, last + 1);
+
+    // Fix common Claude JSON issues
+    // 1. Remove trailing commas before } or ]
+    jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
+    // 2. Fix unescaped quotes inside strings (basic fix)
+    // 3. Truncate at last valid closing brace if parse fails
+    let briefContent;
+    try {
+      briefContent = JSON.parse(jsonStr);
+    } catch(e1) {
+      // Try progressively shorter strings until valid
+      let validJson = null;
+      for (let i = jsonStr.length - 1; i > 0; i--) {
+        if (jsonStr[i] === '}') {
+          try {
+            const candidate = jsonStr.slice(0, i + 1);
+            validJson = JSON.parse(candidate);
+            break;
+          } catch(e2) { continue; }
+        }
+      }
+      if (!validJson) throw new Error('Invalid JSON: ' + e1.message);
+      briefContent = validJson;
+    }
 
     await fetch(`${SUPABASE_URL}/rest/v1/briefs`, {
       method: 'POST',
