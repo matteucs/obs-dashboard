@@ -851,22 +851,6 @@
   }
 
 
-  function renderMastroSources(sources) {
-    if (!sources?.length) return '';
-    return `<div style="margin-bottom:24px;">
-      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Mastro Framework Applied</div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        ${sources.map(s => `
-          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);">
-            <div style="width:6px;height:6px;border-radius:50%;background:var(--high);flex-shrink:0;margin-top:5px;"></div>
-            <div>
-              <div style="font-size:12px;color:var(--text);font-weight:500;">${s.title} <span style="font-size:11px;color:var(--text3);font-weight:400;">(${s.venue}${s.year ? ', ' + s.year : ''})</span></div>
-              ${s.how_applied ? `<div style="font-size:11px;color:var(--text2);margin-top:2px;line-height:1.5;">${s.how_applied}</div>` : ''}
-            </div>
-          </div>`).join('')}
-      </div>
-    </div><hr class="brief-divider">`;
-  }
 
   function renderThinkTankSources(sources) {
     if (!sources || !sources.length) return '';
@@ -1065,14 +1049,6 @@
 
     // Overall assessment
 
-    // Mastro bottom-line assessment
-    if (b.mastro_assessment || b.deterrence_implications) {
-      html += `<div style="background:rgba(192,57,43,0.05);border:1px solid rgba(192,57,43,0.2);border-left:3px solid var(--high);border-radius:0 var(--radius-lg) var(--radius-lg) 0;padding:16px 20px;margin-bottom:16px;">
-        <div style="font-size:10px;color:var(--high);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">&#9632; Strategic bottom line</div>
-        ${b.mastro_assessment ? `<div style="font-size:14px;color:var(--text);line-height:1.7;margin-bottom:${b.deterrence_implications ? '12px' : '0'};font-weight:500">${b.mastro_assessment}</div>` : ''}
-        ${b.deterrence_implications ? `<div style="font-size:12px;color:var(--text2);line-height:1.6;padding-top:10px;border-top:1px solid rgba(192,57,43,0.15)"><span style="font-size:10px;color:var(--high);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:4px">Deterrence implications</span>${b.deterrence_implications}</div>` : ''}
-      </div>`;
-    }
     if (b.overall_assessment) {
       html += `<div class="brief-overall">
         <div class="brief-overall-title">Executive assessment</div>
