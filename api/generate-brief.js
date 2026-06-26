@@ -1,5 +1,3 @@
-const { createHash, randomBytes } = require('crypto');
-
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end();
 
@@ -59,72 +57,55 @@ module.exports = async function handler(req, res) {
   const analyzed = filtered.filter(s => s.analysis);
   const highPriority = analyzed.filter(s => s.analysis?.priority === 'High');
   const medPriority  = analyzed.filter(s => s.analysis?.priority === 'Medium');
-  const lowPriority  = analyzed.filter(s => s.analysis?.priority === 'Low');
 
   const fmtSub = s => `[${s.date}] ${s.analysis?.category}: ${(s.narrative||'').slice(0,100)}`;
 
   const subContext = analyzed.length
-    ? `HIGH PRIORITY (${highPriority.length}): ${highPriority.map(fmtSub).join(' | ')}
-MEDIUM (${medPriority.length}): ${medPriority.map(fmtSub).join(' | ')}`
+    ? `HIGH (${highPriority.length}): ${highPriority.map(fmtSub).join(' | ')} MED (${medPriority.length}): ${medPriority.map(fmtSub).join(' | ')}`
     : 'No analyzed submissions.';
 
-  // Historical context for weekly/monthly/yearly
+  // Historical context
   let historicalContext = '';
   if (briefType !== 'daily') {
     try {
       const histRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/briefs?type=eq.daily&order=generated_at.desc&limit=7`,
+        `${SUPABASE_URL}/rest/v1/briefs?type=eq.daily&order=generated_at.desc&limit=5`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
       );
       const hist = await histRes.json();
       if (hist.length) {
-        historicalContext = hist.slice(0,5).map(b =>
-          `[${b.period_label}] Risk:${b.content?.overall_risk} ${(b.content?.overall_assessment||'').slice(0,100)}`
+        historicalContext = hist.map(b =>
+          `[${b.period_label}] Risk:${b.content?.overall_risk} ${(b.content?.overall_assessment||'').slice(0,80)}`
         ).join(' | ');
       }
     } catch(e) {}
   }
 
   // Profile tailoring
-  const profileContext = analystProfile ? `
-ANALYST PROFILE - TAILOR TO THIS USER:
-Role: ${analystProfile.role || ''} | Unit: ${analystProfile.unit || ''} | Command: ${analystProfile.command || ''}
-AOR: ${analystProfile.aor || ''} | Mission: ${analystProfile.mission_area || ''}
-Priority Topics: ${(analystProfile.priority_topics||[]).join(', ')}
-Key Questions: ${analystProfile.key_questions || ''}
-Operational Context: ${analystProfile.operational_context || ''}
-Tailoring Notes: ${analystProfile.tailoring_notes || ''}
-` : '';
+  const profileContext = analystProfile ? `ANALYST: ${analystProfile.role||''} ${analystProfile.unit||''} ${analystProfile.command||''} AOR:${analystProfile.aor||''} Topics:${(analystProfile.priority_topics||[]).join(',')} Questions:${(analystProfile.key_questions||'').slice(0,200)}` : '';
 
   const today = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  const prompt = `You are a senior China intelligence analyst. Date: ${today}. Brief type: ${briefType.toUpperCase()}.
+  const prompt = `You are a senior China intelligence analyst. Date: ${today}. Type: ${briefType.toUpperCase()}.
+${profileContext ? profileContext + '\n' : ''}
+Search for today's China news and think tank analysis (CSIS, Pacific Forum, Hudson, Wilson Center, CRS). Use field submissions as corroborating signal.
 
-ANALYTICAL FRAMEWORK - DR. ORIANA SKYLAR MASTRO (Stanford/Carnegie/USAF Reserve Lt. Col.):
-Write in her style: capabilities over intentions, Beijing cost-benefit logic, no wishful thinking, military-first lens, deterrence math, Taiwan as organizing question, direct policy-relevant prose. Apply her Upstart framework (Emulation/Exploitation/Entrepreneurship). Search and cite her work from orianaskylarmastro.com, foreignaffairs.com, carnegieendowment.org. Key works: Upstart (2024), China's Agents of Chaos (Foreign Affairs Nov/Dec 2024), The Military Challenge of PRC (Hoover 2023), Sino-Russian Military Alignment (Security Studies Apr 2024), CSIS Project Atom 2023, Senate testimony March 2025.
-${profileContext}
-SOURCES:
-A - NEWS [70%]: Search Reuters, AP, Bloomberg, FT, SCMP, Nikkei, Defense News. 4-6 stories per theme. ALL significant stories.
-B - THINK TANKS [20%]: Search past 30 days: csis.org, pacforum.org, hudsoninstitute.org, wilsoncenter.org, crs.congress.gov, orianaskylarmastro.com.
-C - FIELD SUBMISSIONS [10%]: ${subContext}
-${historicalContext ? `PRIOR BRIEFS: ${historicalContext}` : ''}
+FIELD SUBMISSIONS: ${subContext}
+${historicalContext ? 'PRIOR BRIEFS: ' + historicalContext : ''}
 
-TECHNOLOGY: Semiconductors, space, 5G/6G, quantum, biotech, green energy, nuclear, robotics, cyber - NOT just AI.
-${briefType !== 'daily' ? 'Emphasize trends and trajectory over time.' : ''}
+Technology coverage must be BROAD: semiconductors, space, 5G/6G, quantum, biotech, green energy, nuclear, robotics, cyber — not just AI.
+${briefType !== 'daily' ? 'Emphasize trends over time.' : ''}
 
 Return ONLY raw JSON, no markdown:
 {
-  "overall_assessment": "3-4 sentences Mastro-style: capabilities-focused, deterrence-conscious.",
-  "mastro_assessment": "1-2 sentence bottom-line for USAF senior leadership - blunt and specific.",
-  "deterrence_implications": "2-3 sentences on US deterrence posture net effect.",
+  "overall_assessment": "3-4 sentence executive summary.",
   "overall_risk": "High|Medium|Low",
   "themes": {
-    "economy": {"tldr":"...","analysis":"4-5 sentences Mastro-framed.","trends":[{"label":"...","text":"...","direction":"Rising|Falling|Stable|Uncertain"}],"signals":[{"label":"...","value":"...","desc":"..."}],"risk":"High|Medium|Low","field_corroboration":"..."},
-    "regional": {"tldr":"...","analysis":"...","trends":[...],"signals":[...],"risk":"...","field_corroboration":"..."},
-    "military":  {"tldr":"...","analysis":"...","trends":[...],"signals":[...],"risk":"...","field_corroboration":"..."},
-    "technology":{"tldr":"...","analysis":"...","trends":[...],"signals":[...],"risk":"...","field_corroboration":"..."}
+    "economy":    {"tldr":"...","analysis":"3-4 sentences.","trends":[{"label":"...","text":"...","direction":"Rising|Falling|Stable|Uncertain"}],"signals":[{"label":"...","value":"...","desc":"..."}],"risk":"High|Medium|Low","field_corroboration":"..."},
+    "regional":   {"tldr":"...","analysis":"...","trends":[...],"signals":[...],"risk":"...","field_corroboration":"..."},
+    "military":   {"tldr":"...","analysis":"...","trends":[...],"signals":[...],"risk":"...","field_corroboration":"..."},
+    "technology": {"tldr":"...","analysis":"...","trends":[...],"signals":[...],"risk":"...","field_corroboration":"..."}
   },
-  "mastro_sources_used": [{"title":"...","venue":"...","year":"...","how_applied":"..."}],
   "think_tank_sources": [{"org":"...","title":"...","date":"...","url":"...","key_finding":"..."}],
   "tailored_section": {"role_relevance":"...","priority_topic_highlights":[{"topic":"...","finding":"...","implication":"..."}],"recommended_actions":["..."]},
   "economic_indicators": {
@@ -166,39 +147,28 @@ Return ONLY raw JSON, no markdown:
     const aiData = await aiRes.json();
     let jsonText = null;
 
-    // Collect all text from all text blocks (web search may produce multiple)
     const allText = (aiData.content || [])
       .filter(b => b.type === 'text' && b.text)
       .map(b => b.text)
       .join('\n');
 
     if (allText) {
-      // Try 1: clean and parse entire combined text
       const cleaned = allText.trim().replace(/```json|```/g, '').trim();
       try { JSON.parse(cleaned); jsonText = cleaned; } catch(e) {}
-
-      // Try 2: extract largest JSON object
       if (!jsonText) {
         const first = cleaned.indexOf('{');
         const last = cleaned.lastIndexOf('}');
         if (first !== -1 && last > first) {
-          const candidate = cleaned.slice(first, last + 1);
-          try { JSON.parse(candidate); jsonText = candidate; } catch(e) {}
+          try { JSON.parse(cleaned.slice(first, last + 1)); jsonText = cleaned.slice(first, last + 1); } catch(e) {}
         }
-      }
-
-      // Try 3: find JSON by scanning for opening brace after known keys
-      if (!jsonText) {
-        const keyMatch = cleaned.match(/(\{[\s\S]*?"overall_assessment"[\s\S]*?\})/);
-        if (keyMatch) { try { JSON.parse(keyMatch[1]); jsonText = keyMatch[1]; } catch(e) {} }
       }
     }
 
     if (!jsonText) {
-      // Log what we got for debugging
-      const preview = (aiData.content||[]).map(b => b.type + (b.type==='text'?':'+b.text.slice(0,100):'')).join(' | ');
-      throw new Error('No valid JSON. Response: ' + preview.slice(0, 200));
+      const preview = (aiData.content||[]).map(b => b.type + (b.type==='text' ? ':' + (b.text||'').slice(0,100) : '')).join(' | ');
+      throw new Error('No valid JSON. Got: ' + preview.slice(0,300));
     }
+
     const briefContent = JSON.parse(jsonText);
 
     await fetch(`${SUPABASE_URL}/rest/v1/briefs`, {
@@ -209,13 +179,7 @@ Return ONLY raw JSON, no markdown:
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates',
       },
-      body: JSON.stringify({
-        id: briefId,
-        type: briefType,
-        period_label: periodLabel,
-        generated_at: now.toISOString(),
-        content: briefContent
-      })
+      body: JSON.stringify({ id: briefId, type: briefType, period_label: periodLabel, generated_at: now.toISOString(), content: briefContent })
     });
 
     return res.status(200).json({ success: true, briefId, type: briefType, period_label: periodLabel });
