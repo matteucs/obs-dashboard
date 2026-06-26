@@ -1,5 +1,22 @@
 {
   "version": 2,
+  "functions": {
+    "api/generate-brief.js": {
+      "maxDuration": 300
+    },
+    "api/proxy.js": {
+      "maxDuration": 60
+    },
+    "api/brief-auth.js": {
+      "maxDuration": 30
+    },
+    "api/profile.js": {
+      "maxDuration": 30
+    },
+    "api/auth.js": {
+      "maxDuration": 30
+    }
+  },
   "crons": [
     { "path": "/api/generate-brief?type=daily",   "schedule": "0 6 * * *" },
     { "path": "/api/generate-brief?type=weekly",  "schedule": "0 7 * * 1" },
