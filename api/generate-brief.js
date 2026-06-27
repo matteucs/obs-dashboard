@@ -8,6 +8,35 @@ module.exports = async function handler(req, res) {
   const briefType = req.query.type || 'daily';
   const now = new Date();
   const briefId = `${briefType}-${now.toISOString().split('T')[0]}`;
+
+  // Load submissions for context
+  let analyzed = [], highPriority = [], historicalContext = '';
+  try {
+    const subRes = await fetch(`${SUPABASE_URL}/rest/v1/submissions?order=created_at.desc&limit=50`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const subs = await subRes.json();
+    if (Array.isArray(subs)) {
+      analyzed = subs.filter(s => s.analysis);
+      highPriority = analyzed.filter(s => s.analysis?.priority === 'High');
+    }
+  } catch(e) {}
+
+  // Historical context for weekly/monthly/yearly
+  if (briefType !== 'daily') {
+    try {
+      const histRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/briefs?type=eq.daily&order=generated_at.desc&limit=5`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
+      const hist = await histRes.json();
+      if (Array.isArray(hist) && hist.length) {
+        historicalContext = hist.map(b =>
+          `[${b.period_label}] Risk:${b.content?.overall_risk} ${(b.content?.overall_assessment||'').slice(0,80)}`
+        ).join(' | ');
+      }
+    } catch(e) {}
+  }
   const periodLabel = {
     daily:   now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }),
     weekly:  `Week of ${now.toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })}`,
@@ -166,6 +195,6 @@ Return ONLY raw JSON, no markdown fences, starting with { and ending with }:
 
     return res.status(200).json({ success: true, briefId, type: briefType, period_label: periodLabel });
   } catch(e) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message, stack: e.stack?.slice(0,500) });
   }
 };
