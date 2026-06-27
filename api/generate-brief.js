@@ -15,8 +15,69 @@ module.exports = async function handler(req, res) {
     yearly:  now.getFullYear().toString(),
   }[briefType] || now.toISOString().split('T')[0];
 
-  const prompt = `Write a China intelligence brief for ${now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} covering Economy, Regional Goals, Military, Technology. Return ONLY compact JSON no markdown:
-{"overall_assessment":"2 sentences","overall_risk":"High|Medium|Low","themes":{"economy":{"tldr":"1 sentence","analysis":"2 sentences","trends":[{"label":"x","text":"x","direction":"Rising"}],"signals":[{"label":"x","value":"x","desc":"x"}],"risk":"Medium","field_corroboration":""},"regional":{"tldr":"x","analysis":"x","trends":[{"label":"x","text":"x","direction":"Stable"}],"signals":[{"label":"x","value":"x","desc":"x"}],"risk":"Medium","field_corroboration":""},"military":{"tldr":"x","analysis":"x","trends":[{"label":"x","text":"x","direction":"Rising"}],"signals":[{"label":"x","value":"x","desc":"x"}],"risk":"High","field_corroboration":""},"technology":{"tldr":"x","analysis":"x","trends":[{"label":"x","text":"x","direction":"Rising"}],"signals":[{"label":"x","value":"x","desc":"x"}],"risk":"Medium","field_corroboration":""}},"source_count":{"submissions":0,"high_priority_submissions":0}}`;
+  const today = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const subContext = analyzed && analyzed.length
+    ? 'HIGH PRIORITY: ' + (highPriority||[]).map(s => '[' + s.date + '] ' + (s.analysis&&s.analysis.category||'') + ': ' + (s.narrative||'').slice(0,120)).join(' | ')
+    : 'No field submissions.';
+
+  const prompt = `You are a senior China intelligence analyst producing a ${briefType.toUpperCase()} brief dated ${today}.
+
+Search for the latest news and analysis across all four themes. Draw on Reuters, AP, Bloomberg, FT, SCMP, Nikkei Asia, Defense News, and think tanks (CSIS, Pacific Forum, Hudson Institute, Wilson Center, CRS). Find 4-6 significant stories per theme.
+
+FIELD SUBMISSIONS (corroborating signal - 20% weight): ${subContext}
+${historicalContext ? 'PRIOR BRIEFS CONTEXT: ' + historicalContext : ''}
+
+TECHNOLOGY: Cover semiconductors, space & aerospace, 5G/6G, quantum computing, biotech, green energy (solar/EVs/batteries), nuclear, robotics, cybersecurity. NOT just AI.
+
+${briefType !== 'daily' ? 'Emphasize trends and changes over time.' : 'Focus on today and this week.'}
+
+Return ONLY raw JSON, no markdown fences, starting with { and ending with }:
+{
+  "overall_assessment": "3-4 sentence executive summary of the most significant developments.",
+  "overall_risk": "High|Medium|Low",
+  "themes": {
+    "economy": {
+      "tldr": "One sentence bottom line.",
+      "analysis": "3-4 sentences covering trade, GDP signals, financial markets, economic policy.",
+      "trends": [
+        {"label": "Trend name", "text": "What this trend means and why it matters.", "direction": "Rising|Falling|Stable|Uncertain"}
+      ],
+      "signals": [
+        {"label": "Indicator name", "value": "Specific value or status", "desc": "Brief context"}
+      ],
+      "risk": "High|Medium|Low",
+      "field_corroboration": "One sentence if field reports corroborate or contradict. Omit if none."
+    },
+    "regional": {
+      "tldr": "One sentence bottom line.",
+      "analysis": "3-4 sentences on Taiwan, South China Sea, BRI, diplomacy, regional influence.",
+      "trends": [{"label": "...", "text": "...", "direction": "..."}],
+      "signals": [{"label": "...", "value": "...", "desc": "..."}],
+      "risk": "High|Medium|Low",
+      "field_corroboration": ""
+    },
+    "military": {
+      "tldr": "One sentence bottom line.",
+      "analysis": "3-4 sentences on PLA modernization, exercises, weapons programs, posture.",
+      "trends": [{"label": "...", "text": "...", "direction": "..."}],
+      "signals": [{"label": "...", "value": "...", "desc": "..."}],
+      "risk": "High|Medium|Low",
+      "field_corroboration": ""
+    },
+    "technology": {
+      "tldr": "One sentence bottom line.",
+      "analysis": "3-4 sentences across multiple tech domains - not just AI.",
+      "trends": [{"label": "...", "text": "...", "direction": "..."}],
+      "signals": [{"label": "...", "value": "...", "desc": "..."}],
+      "risk": "High|Medium|Low",
+      "field_corroboration": ""
+    }
+  },
+  "think_tank_sources": [
+    {"org": "CSIS or other", "title": "Publication title", "date": "Date", "url": "URL", "key_finding": "One sentence finding"}
+  ],
+  "source_count": {"submissions": ${analyzed ? analyzed.length : 0}, "high_priority_submissions": ${highPriority ? highPriority.length : 0}}
+}`;
 
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
