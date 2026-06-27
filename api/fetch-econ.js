@@ -9,12 +9,7 @@ module.exports = async function handler(req, res) {
   const today   = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
   const dateStr = now.toISOString().split('T')[0];
 
-  const prompt = `China economic analyst supporting US DoD strategy. Date: ${today}.
-
-Search for and provide the latest available China macroeconomic data. Be specific with actual figures where known.
-
-Return ONLY raw JSON starting { ending }:
-{"date":"${dateStr}","generated":"${now.toISOString()}","overview":"3-4 sentences on China macro condition, trajectory, and key risks relevant to US strategic competition.","dod_relevance":"2-3 sentences on what the economic picture means for China defense spending capacity and military modernization sustainability.","indicators":[{"name":"GDP Growth Rate","value":"latest figure","previous":"prior period","trend":"Rising|Falling|Stable|Uncertain","interpretation":"strategic significance for US competition"},{"name":"Defense Budget","value":"latest announced figure","previous":"prior year","trend":"Rising|Falling|Stable","interpretation":"military modernization capacity"},{"name":"Retail Sales","value":"latest YoY %","previous":"prior month","trend":"Rising|Falling|Stable|Uncertain","interpretation":"domestic demand and consumer confidence"}],"pmi":{"manufacturing":"NBS and Caixin figures with dates","services":"NBS and Caixin figures","interpretation":"what PMI signals about economic momentum and industrial capacity"},"trade":{"exports":"latest YoY %","imports":"latest YoY %","surplus":"$X billion","key_partners":"US, EU, ASEAN — notable developments in trade relationships","interpretation":"trade dependency, decoupling risks, economic coercion leverage"},"currency":{"usd_cny":"current exchange rate","trend":"Appreciation|Depreciation|Stable","pboc_action":"recent PBOC interventions or policy moves","interpretation":"capital flow, financial stability, currency war risks"},"real_estate":{"status":"current market condition","key_developers":"Evergrande, Country Garden, Vanke — current status","policy_response":"government stabilization measures","interpretation":"systemic financial risk and fiscal drag on growth"},"inflation":{"cpi":"latest CPI figure","ppi":"latest PPI figure","interpretation":"deflation risk, consumer weakness, impact on corporate margins"},"employment":{"urban_unemployment":"latest rate","youth_unemployment":"latest rate","interpretation":"social stability pressure and CCP political risk"},"foreign_investment":{"fdi":"latest FDI figures and trend","trend":"Rising|Falling|Stable","interpretation":"business confidence, technology decoupling, sanctions effectiveness"},"debt":{"local_government":"LGFV debt situation and scale","corporate":"corporate debt stress indicators","household":"household debt and consumption outlook","interpretation":"systemic risk assessment and fiscal capacity for military spending"},"forward_indicators":[{"name":"Electricity Consumption","value":"latest reading and YoY change","interpretation":"true economic activity signal beyond official GDP"},{"name":"Rail Freight Volume","value":"latest reading","interpretation":"supply chain activity and industrial output proxy"},{"name":"Property Investment","value":"YoY change","interpretation":"construction sector health and fiscal multiplier"}],"overall_assessment":"High|Medium-High|Medium|Medium-Low|Low","overall_assessment_text":"3-4 sentences on China economic health trajectory, key downside risks, and implications for ability to sustain military modernization at current pace."}`;
+  const prompt = 'China economic analyst for US DoD. Date: ' + today + '. Provide the latest available China macroeconomic data with specific figures. Keep all text values concise (under 80 characters). Return ONLY raw JSON starting { ending }: {"search_date":"' + dateStr + '","overview":"3 sentences on China macro condition and trajectory.","dod_relevance":"2 sentences on defense spending capacity and military modernization.","indicators":[{"name":"GDP Growth","value":"X%","previous":"X%","trend":"Rising|Falling|Stable|Uncertain","interpretation":"1 sentence"},{"name":"Defense Budget","value":"$X billion","previous":"prior year","trend":"Rising","interpretation":"1 sentence"},{"name":"Retail Sales","value":"YoY X%","previous":"prior","trend":"Rising|Falling|Stable|Uncertain","interpretation":"1 sentence"}],"pmi":{"manufacturing":"NBS X.X Caixin X.X","services":"NBS X.X Caixin X.X","interpretation":"1 sentence"},"trade":{"exports":"YoY X%","imports":"YoY X%","surplus":"$X bn","key_partners":"key developments","interpretation":"1 sentence"},"currency":{"usd_cny":"X.XX","trend":"Appreciation|Depreciation|Stable","pboc_action":"recent action","interpretation":"1 sentence"},"real_estate":{"status":"brief status","key_developers":"Evergrande/Country Garden/Vanke","policy_response":"measures","interpretation":"1 sentence"},"inflation":{"cpi":"X%","ppi":"X%","interpretation":"1 sentence"},"employment":{"urban_unemployment":"X%","youth_unemployment":"X%","interpretation":"1 sentence"},"foreign_investment":{"fdi":"$X billion","trend":"Rising|Falling|Stable","interpretation":"1 sentence"},"debt":{"local_government":"LGFV situation","corporate":"stress level","household":"outlook","interpretation":"1 sentence"},"forward_indicators":[{"name":"Electricity Consumption","value":"YoY X%","interpretation":"1 sentence"},{"name":"Rail Freight","value":"YoY X%","interpretation":"1 sentence"},{"name":"Property Investment","value":"YoY X%","interpretation":"1 sentence"}],"overall_assessment":"High|Medium-High|Medium|Medium-Low|Low","overall_assessment_text":"2-3 sentences on economic health and military modernization capacity."}';
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -26,20 +21,35 @@ Return ONLY raw JSON starting { ending }:
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+        max_tokens: 2500,
         messages: [{ role: 'user', content: prompt }]
       })
     });
+
     const data = await r.json();
-    const text = (data.content||[]).filter(b=>b.type==='text'&&b.text).map(b=>b.text).join('\n')
-      .replace(/```json|```/g,'').trim();
-    const first = text.indexOf('{'), last = text.lastIndexOf('}');
-    if (first===-1||last===-1) throw new Error('No JSON in response');
-    let s = text.slice(first,last+1).replace(/,\s*([}\]])/g,'$1');
-    const econ = JSON.parse(s);
+    const raw  = (data.content||[]).filter(b=>b.type==='text'&&b.text).map(b=>b.text).join('\n').trim();
+    const first = raw.indexOf('{'), last = raw.lastIndexOf('}');
+    if (first === -1 || last === -1) throw new Error('No JSON in response. stop_reason: ' + data.stop_reason);
+
+    let s = raw.slice(first, last+1).replace(/,\s*([}\]])/g,'$1');
+
+    // Try parsing — if it fails walk back to last valid }
+    let econ;
+    try {
+      econ = JSON.parse(s);
+    } catch(e1) {
+      let parsed = null;
+      for (let i = s.length-1; i > 0; i--) {
+        if (s[i] === '}') {
+          try { parsed = JSON.parse(s.slice(0, i+1)); break; } catch(e2) { continue; }
+        }
+      }
+      if (!parsed) throw new Error('Invalid JSON: ' + e1.message);
+      econ = parsed;
+    }
+
     return res.status(200).json(econ);
   } catch(e) {
-    const msg = e.message || 'Unknown error';
-    return res.status(500).json({ error: msg });
+    return res.status(500).json({ error: e.message });
   }
 };
