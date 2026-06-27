@@ -1030,6 +1030,156 @@
     return html;
   }
 
+  function renderEconomicIndicators(econ) {
+    if (!econ) return '';
+    const trendClass = t => {
+      const m = { Rising: 'econ-trend-rising', Falling: 'econ-trend-falling', Stable: 'econ-trend-stable', Uncertain: 'econ-trend-uncertain', Appreciation: 'econ-trend-rising', Depreciation: 'econ-trend-falling' };
+      return m[t] || 'econ-trend-uncertain';
+    };
+    const trendArrow = t => ({ Rising: '&#8679;', Falling: '&#8681;', Stable: '&#8596;', Appreciation: '&#8679;', Depreciation: '&#8681;' }[t] || '&#63;');
+
+    let html = `<div class="econ-section">
+      <div class="econ-header">
+        <div class="econ-icon">&#9654;</div>
+        <div>
+          <div class="econ-title">Economic Indicators</div>
+          <div class="econ-sub">Advanced data — China macroeconomic dashboard${econ.search_date ? ' · ' + econ.search_date : ''}</div>
+        </div>
+      </div>`;
+
+    if (econ.overview) html += `<div class="econ-overview">${econ.overview}</div>`;
+
+    // Key indicators grid
+    if (econ.indicators?.length) {
+      html += `<div class="econ-grid">`;
+      for (const ind of econ.indicators) {
+        html += `<div class="econ-card">
+          <div class="econ-card-label">${ind.name}</div>
+          <div class="econ-card-value">${ind.value}</div>
+          ${ind.previous ? `<div class="econ-card-prev">Prev: ${ind.previous}</div>` : ''}
+          ${ind.trend ? `<div class="econ-card-trend ${trendClass(ind.trend)}">${trendArrow(ind.trend)} ${ind.trend}</div>` : ''}
+          ${ind.interpretation ? `<div class="econ-card-interp">${ind.interpretation}</div>` : ''}
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    // PMI
+    if (econ.pmi) {
+      html += `<div class="econ-block"><div class="econ-block-title">Purchasing Managers Index (PMI)</div>
+        <div class="econ-row"><span class="econ-row-label">Manufacturing PMI</span><span class="econ-row-val">${econ.pmi.manufacturing || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">Services PMI</span><span class="econ-row-val">${econ.pmi.services || '—'}</span></div>
+        ${econ.pmi.interpretation ? `<div class="econ-interp">${econ.pmi.interpretation}</div>` : ''}
+      </div>`;
+    }
+
+    // Trade
+    if (econ.trade) {
+      html += `<div class="econ-block"><div class="econ-block-title">Trade & Current Account</div>
+        <div class="econ-row"><span class="econ-row-label">Exports YoY</span><span class="econ-row-val">${econ.trade.exports || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">Imports YoY</span><span class="econ-row-val">${econ.trade.imports || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">Trade surplus</span><span class="econ-row-val">${econ.trade.surplus || '—'}</span></div>
+        ${econ.trade.key_partners ? `<div class="econ-row"><span class="econ-row-label">Key partners</span><span class="econ-row-val" style="text-align:right;max-width:60%;font-weight:400">${econ.trade.key_partners}</span></div>` : ''}
+        ${econ.trade.interpretation ? `<div class="econ-interp">${econ.trade.interpretation}</div>` : ''}
+      </div>`;
+    }
+
+    // Two column: currency + inflation
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">`;
+
+    if (econ.currency) {
+      html += `<div class="econ-block"><div class="econ-block-title">Currency (RMB/CNY)</div>
+        <div class="econ-row"><span class="econ-row-label">USD/CNY</span><span class="econ-row-val">${econ.currency.usd_cny || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">Trend</span><span class="econ-row-val"><span class="econ-card-trend ${trendClass(econ.currency.trend)}" style="display:inline-flex">${trendArrow(econ.currency.trend)} ${econ.currency.trend || '—'}</span></span></div>
+        ${econ.currency.pboc_action ? `<div class="econ-row"><span class="econ-row-label">PBOC</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.currency.pboc_action}</span></div>` : ''}
+        ${econ.currency.interpretation ? `<div class="econ-interp">${econ.currency.interpretation}</div>` : ''}
+      </div>`;
+    }
+
+    if (econ.inflation) {
+      html += `<div class="econ-block"><div class="econ-block-title">Inflation</div>
+        <div class="econ-row"><span class="econ-row-label">CPI</span><span class="econ-row-val">${econ.inflation.cpi || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">PPI</span><span class="econ-row-val">${econ.inflation.ppi || '—'}</span></div>
+        ${econ.inflation.interpretation ? `<div class="econ-interp">${econ.inflation.interpretation}</div>` : ''}
+      </div>`;
+    }
+
+    html += `</div>`;
+
+    // Two column: employment + FDI
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">`;
+
+    if (econ.employment) {
+      html += `<div class="econ-block"><div class="econ-block-title">Employment</div>
+        <div class="econ-row"><span class="econ-row-label">Urban unemployment</span><span class="econ-row-val">${econ.employment.urban_unemployment || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">Youth unemployment</span><span class="econ-row-val">${econ.employment.youth_unemployment || '—'}</span></div>
+        ${econ.employment.interpretation ? `<div class="econ-interp">${econ.employment.interpretation}</div>` : ''}
+      </div>`;
+    }
+
+    if (econ.foreign_investment) {
+      html += `<div class="econ-block"><div class="econ-block-title">Foreign Investment (FDI)</div>
+        <div class="econ-row"><span class="econ-row-label">FDI inflows</span><span class="econ-row-val">${econ.foreign_investment.fdi || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">Trend</span><span class="econ-row-val"><span class="econ-card-trend ${trendClass(econ.foreign_investment.trend)}" style="display:inline-flex">${trendArrow(econ.foreign_investment.trend)} ${econ.foreign_investment.trend || '—'}</span></span></div>
+        ${econ.foreign_investment.interpretation ? `<div class="econ-interp">${econ.foreign_investment.interpretation}</div>` : ''}
+      </div>`;
+    }
+
+    html += `</div>`;
+
+    // Real estate
+    if (econ.real_estate) {
+      html += `<div class="econ-block"><div class="econ-block-title">Real Estate Sector</div>
+        <div class="econ-row"><span class="econ-row-label">Market status</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:65%">${econ.real_estate.status || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">Key developers</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:65%">${econ.real_estate.key_developers || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">Policy response</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:65%">${econ.real_estate.policy_response || '—'}</span></div>
+        ${econ.real_estate.interpretation ? `<div class="econ-interp">${econ.real_estate.interpretation}</div>` : ''}
+      </div>`;
+    }
+
+    // Debt
+    if (econ.debt) {
+      html += `<div class="econ-block"><div class="econ-block-title">Debt & Leverage</div>
+        <div class="econ-row"><span class="econ-row-label">Local government debt</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.debt.local_government || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">Corporate debt</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.debt.corporate || '—'}</span></div>
+        <div class="econ-row"><span class="econ-row-label">Household debt</span><span class="econ-row-val" style="font-weight:400;text-align:right;max-width:60%">${econ.debt.household || '—'}</span></div>
+        ${econ.debt.interpretation ? `<div class="econ-interp">${econ.debt.interpretation}</div>` : ''}
+      </div>`;
+    }
+
+    // Forward / alternative indicators
+    if (econ.forward_indicators?.length) {
+      html += `<div class="econ-block-title" style="margin-bottom:8px">Alternative & Forward Indicators</div>
+        <div class="econ-forward">`;
+      for (const fi of econ.forward_indicators) {
+        html += `<div class="econ-forward-item">
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+              <div class="econ-forward-name">${fi.name}</div>
+              <div class="econ-forward-val">${fi.value}</div>
+            </div>
+            ${fi.interpretation ? `<div class="econ-forward-interp">${fi.interpretation}</div>` : ''}
+          </div>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    // Overall assessment
+    if (econ.overall_assessment || econ.overall_assessment_text) {
+      html += `<div class="econ-assessment">
+        <div>
+          <div class="econ-assessment-label">Economic health assessment</div>
+          <div class="econ-assessment-val">${econ.overall_assessment || '—'}</div>
+        </div>
+        ${econ.overall_assessment_text ? `<div class="econ-assessment-text">${econ.overall_assessment_text}</div>` : ''}
+      </div>`;
+    }
+
+    html += `</div><hr class="brief-divider">`;
+    return html;
+  }
+
   function renderBrief() {
     if (!currentBrief) return;
     const b = currentBrief;
