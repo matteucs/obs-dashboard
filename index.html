@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>China Bullpen</title>
+<title>China Bullpen Brief</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -358,7 +358,7 @@ body { background:var(--paper); color:var(--ink); font-family:var(--mono); font-
 
 <!-- Masthead -->
 <header class="masthead">
-  <div class="masthead-title">China Bullpen <span>Intelligence</span></div>
+  <div class="masthead-title">China Bullpen <span>Brief</span></div>
   <div class="masthead-meta">
     <span class="masthead-date" id="masthead-date"></span>
   </div>
@@ -372,7 +372,7 @@ body { background:var(--paper); color:var(--ink); font-family:var(--mono); font-
 <!-- Nav -->
 <nav class="nav-bar">
   <button class="nav-tab active" id="tab-news"   onclick="switchTab('news')">News Digest</button>
-  <button class="nav-tab"        id="tab-brief"  onclick="switchTab('brief')">Intelligence Brief</button>
+  <button class="nav-tab"        id="tab-brief"  onclick="switchTab('brief')">Bullpen Daily Brief</button>
   <button class="nav-tab"        id="tab-submit" onclick="switchTab('submit')">Submit Observation</button>
 </nav>
 
@@ -403,7 +403,7 @@ body { background:var(--paper); color:var(--ink); font-family:var(--mono); font-
   <!-- ── BRIEF TAB ─────────────────────────────────────────── -->
   <div id="view-brief" style="display:none">
     <div class="section-header">
-      <div class="section-title">China Bullpen <em>Brief</em></div>
+      <div class="section-title">Bullpen <em>Daily Brief</em></div>
       <div style="display:flex;gap:8px;align-items:center">
         <span class="section-meta" id="brief-period"></span>
         <button class="btn" id="brief-gen-btn" onclick="generateBrief()">Generate now</button>
