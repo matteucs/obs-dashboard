@@ -714,6 +714,54 @@
     await fetchNews();
   }
 
+  function renderNewsContent() {
+    if (!newsDigest) return;
+    const container = document.getElementById('news-content');
+    const groups = ['Politics', 'Military', 'Technology', 'Economy'];
+    const toShow = activeNewsGroup === 'all' ? groups : [activeNewsGroup];
+
+    const generated = newsDigest.generated ? new Date(newsDigest.generated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+    let html = generated ? `<div class="news-last-updated">Last updated at ${generated}</div>` : '';
+
+    for (const group of toShow) {
+      const items = newsDigest.categories?.[group] || [];
+      const colors = GROUP_COLORS[group];
+      html += `<div class="news-group-section">
+        <div class="news-group-title">
+          <div class="news-group-dot" style="background:${colors.dot}"></div>
+          <span class="news-group-name">${group}</span>
+          <span class="news-group-count">${items.length} stories</span>
+        </div>
+        <div class="news-cards">`;
+
+      if (!items.length) {
+        html += `<div style="font-size:12px;color:var(--text3);padding:8px 0;">No stories found for this category today.</div>`;
+      } else {
+        for (const item of items) {
+          const sigColor = item.significance === 'High' ? 'var(--high)' : item.significance === 'Medium' ? 'var(--med)' : 'var(--text3)';
+          html += `<div class="news-card">
+            <div class="news-card-top">
+              <div class="news-headline">${item.headline}</div>
+              <div class="news-meta">
+                ${item.significance ? `<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${colors.badge};color:${colors.text};border:1px solid ${colors.border};font-weight:500;text-transform:uppercase;letter-spacing:0.04em">${group}</span>` : ''}
+                ${item.significance ? `<span style="font-size:11px;color:${sigColor};font-weight:500">${item.significance}</span>` : ''}
+              </div>
+            </div>
+            <div class="news-summary">${item.summary}</div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+              ${item.url
+                ? `<a class="news-link" href="${item.url}" target="_blank" rel="noopener noreferrer">${item.source || 'Read article'} &#8599;</a>`
+                : item.source ? `<span style="font-size:11px;color:var(--text3)">${item.source}</span>` : ''}
+            </div>
+          </div>`;
+        }
+      }
+      html += `</div></div>`;
+    }
+
+    container.innerHTML = html;
+  }
+
   async function fetchNews() {
     document.getElementById('news-loading').style.display = 'block';
     document.getElementById('news-content').innerHTML = '';
@@ -1145,8 +1193,10 @@
 
     try {
       const res = await fetch('/api/generate-brief?type=' + activeBriefType, { method: 'GET' });
+      if (!res.ok) throw new Error('Server error ' + res.status + ' - brief generation timed out. Try again.');
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Generation failed');
+      if (data.error) throw new Error(data.error);
+      if (!data.success) throw new Error('Generation failed');
       showToast(activeBriefType.charAt(0).toUpperCase() + activeBriefType.slice(1) + ' brief generated.');
       await loadBriefs(activeBriefType);
     } catch(e) {
