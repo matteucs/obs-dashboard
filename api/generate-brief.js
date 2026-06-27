@@ -29,6 +29,8 @@ ${historicalContext ? 'PRIOR BRIEFS CONTEXT: ' + historicalContext : ''}
 
 TECHNOLOGY: Cover semiconductors, space & aerospace, 5G/6G, quantum computing, biotech, green energy (solar/EVs/batteries), nuclear, robotics, cybersecurity. NOT just AI.
 
+ECONOMIC INDICATORS: Search for latest China macro data — GDP growth, NBS/Caixin PMI (manufacturing and services), export/import figures, USD/CNY rate, CPI, PPI, urban and youth unemployment, property market (Evergrande, Country Garden, home prices), PBOC actions, and alternative indicators like electricity consumption or freight volumes.
+
 ${briefType !== 'daily' ? 'Emphasize trends and changes over time.' : 'Focus on today and this week.'}
 
 Return ONLY raw JSON, no markdown fences, starting with { and ending with }:
@@ -76,6 +78,20 @@ Return ONLY raw JSON, no markdown fences, starting with { and ending with }:
   "think_tank_sources": [
     {"org": "CSIS or other", "title": "Publication title", "date": "Date", "url": "URL", "key_finding": "One sentence finding"}
   ],
+  "economic_indicators": {
+    "search_date": "${now.toISOString().split('T')[0]}",
+    "overview": "2-3 sentence summary of China macro condition.",
+    "indicators": [{"name": "GDP Growth", "value": "latest figure", "previous": "prior period", "trend": "Rising|Falling|Stable|Uncertain", "interpretation": "what it means"}],
+    "pmi": {"manufacturing": "latest NBS/Caixin figure", "services": "latest figure", "interpretation": "what PMI signals"},
+    "trade": {"exports": "YoY %", "imports": "YoY %", "surplus": "figure", "key_partners": "notable partner developments", "interpretation": "what trade data signals"},
+    "currency": {"usd_cny": "current rate", "trend": "Appreciation|Depreciation|Stable", "pboc_action": "recent PBOC moves", "interpretation": "currency implications"},
+    "real_estate": {"status": "market status", "key_developers": "Evergrande/Country Garden status", "policy_response": "govt measures", "interpretation": "property sector impact"},
+    "inflation": {"cpi": "latest CPI", "ppi": "latest PPI", "interpretation": "inflation dynamics"},
+    "employment": {"urban_unemployment": "rate", "youth_unemployment": "rate", "interpretation": "labor market conditions"},
+    "forward_indicators": [{"name": "e.g. Electricity Consumption", "value": "reading", "interpretation": "what it signals"}],
+    "overall_assessment": "High|Medium-High|Medium|Medium-Low|Low",
+    "overall_assessment_text": "2-3 sentence bottom line on economic health."
+  },
   "source_count": {"submissions": ${analyzed ? analyzed.length : 0}, "high_priority_submissions": ${highPriority ? highPriority.length : 0}}
 }`;
 
