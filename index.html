@@ -555,44 +555,57 @@ function renderNews() {
     : '';
   document.getElementById('news-updated').textContent = gen ? 'Updated ' + gen : '';
 
-  // Render in 2-column grid per category pair, or all 4 in 2x2
+  const CAT_COLORS = {
+    Politics:   { border: '#b91c1c', bg: 'rgba(185,28,28,.04)' },
+    Military:   { border: '#0d1117', bg: 'rgba(13,17,23,.03)' },
+    Economy:    { border: '#15803d', bg: 'rgba(21,128,61,.04)' },
+    Technology: { border: '#1d4ed8', bg: 'rgba(29,78,216,.04)' },
+  };
+
   let html = '';
-  for (let i = 0; i < show.length; i += 2) {
-    const pair = show.slice(i, i+2);
-    html += '<div class="news-grid" style="margin-bottom:16px">';
-    pair.forEach(cat => {
-      const items = (cats[cat] || []);
-      html += `<div class="news-col">
-        <div class="news-col-header">
-          <span class="news-col-cat">${cat}</span>
-          <span>${items.length} items</span>
-        </div>
-        <div class="news-items">`;
-      if (!items.length) {
-        html += '<div style="color:var(--ink3);font-size:12px;padding:8px 0">No stories available</div>';
-      } else {
-        items.forEach(item => {
-          const sigClass = item.significance === 'High' ? 'sig-high' : item.significance === 'Low' ? 'sig-low' : 'sig-medium';
-          const srcType  = item.source_type || '';
-          const srcClass = srcType.includes('Chinese') ? 'source-cn' : srcType.includes('Think') ? 'source-tt' : '';
-          html += `<div class="news-item">
-            <div class="news-item-top">
-              <div class="news-headline">${item.headline}</div>
-              <span class="news-sig ${sigClass}">${item.significance||'Med'}</span>
+  show.forEach(cat => {
+    const items = cats[cat] || [];
+    const col = CAT_COLORS[cat] || { border: '#6e7787', bg: 'rgba(0,0,0,.02)' };
+
+    html += `<div style="margin-bottom:28px;border-left:3px solid ${col.border};">
+      <div style="background:${col.bg};padding:10px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:0;border-bottom:1px solid var(--rule2)">
+        <span style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2)">${cat}</span>
+        <span style="font-size:11px;color:var(--ink3)">${items.length} item${items.length !== 1 ? 's' : ''}</span>
+      </div>`;
+
+    if (!items.length) {
+      html += `<div style="padding:16px 18px;font-size:12px;color:var(--ink3)">No stories available for this category.</div>`;
+    } else {
+      items.forEach((item, idx) => {
+        const sigClass = item.significance === 'High' ? 'sig-high' : item.significance === 'Low' ? 'sig-low' : 'sig-medium';
+        const srcType  = item.source_type || '';
+        const isCN = srcType.includes('Chinese');
+        const isTT = srcType.includes('Think');
+        const srcClass = isCN ? 'source-cn' : isTT ? 'source-tt' : '';
+        const srcLabel = isCN ? 'Chinese State' : isTT ? 'Think Tank' : srcType.split(' ')[0] || '';
+        const isLast = idx === items.length - 1;
+
+        html += `<div style="padding:14px 18px;${isLast ? '' : 'border-bottom:1px solid var(--rule2);'}display:flex;gap:16px;align-items:flex-start;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;">
+              <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.4;flex:1">${item.headline}</div>
+              <span class="news-sig ${sigClass}" style="flex-shrink:0">${item.significance||'Med'}</span>
             </div>
-            <div class="news-summary">${item.summary}</div>
-            <div class="news-footer">
-              <span class="news-source-badge ${srcClass}">${item.source}${srcType ? ' · ' + srcType.split(' ')[0] + (srcType.includes('Think') ? ' Tank' : ' Media') : ''}</span>
-              ${item.url ? `<a class="news-link" href="${item.url}" target="_blank" rel="noopener">Read &#8599;</a>` : ''}
+            <div style="font-size:12px;color:var(--ink2);line-height:1.7;margin-bottom:8px;">${item.summary}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <span style="font-size:11px;color:var(--ink3);font-weight:500">${item.source}</span>
+                ${srcLabel ? `<span class="news-source-badge ${srcClass}">${srcLabel}</span>` : ''}
+              </div>
+              ${item.url ? `<a class="news-link" href="${item.url}" target="_blank" rel="noopener">Read article &#8599;</a>` : ''}
             </div>
-          </div>`;
-        });
-      }
-      html += '</div></div>';
-    });
-    if (pair.length === 1) html += '<div class="news-col" style="background:var(--paper)"></div>';
+          </div>
+        </div>`;
+      });
+    }
     html += '</div>';
-  }
+  });
+
   el.innerHTML = html || '<div class="news-empty">No news available</div>';
 }
 
