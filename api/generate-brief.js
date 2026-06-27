@@ -78,7 +78,6 @@ module.exports = async function handler(req, res) {
     'Content-Type': 'application/json',
     'x-api-key': ANTHROPIC_KEY,
     'anthropic-version': '2023-06-01',
-    'anthropic-beta': 'web-search-2025-03-05',
   };
 
   // CALL 1: Main brief themes
@@ -110,7 +109,6 @@ IMPORTANT: Return ONLY the JSON object above. Do not wrap it in another object. 
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 4000,
-          tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 6 }],
           messages: [{ role: 'user', content: promptThemes }]
         })
       }),
@@ -120,7 +118,6 @@ IMPORTANT: Return ONLY the JSON object above. Do not wrap it in another object. 
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 2000,
-          tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
           messages: [{ role: 'user', content: promptEcon }]
         })
       })
