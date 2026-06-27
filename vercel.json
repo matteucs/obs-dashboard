@@ -3,6 +3,7 @@
   "functions": {
     "api/generate-brief.js": { "maxDuration": 60 },
     "api/fetch-news.js":     { "maxDuration": 60 },
+    "api/fetch-econ.js":     { "maxDuration": 60 },
     "api/proxy.js":          { "maxDuration": 60 },
     "api/brief-auth.js":     { "maxDuration": 30 },
     "api/profile.js":        { "maxDuration": 30 },
