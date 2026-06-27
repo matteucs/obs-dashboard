@@ -737,21 +737,6 @@
       document.getElementById('news-content').innerHTML = '<div class="news-empty"><div class="news-empty-big">Could not load news</div><div>' + e.message + '</div></div>';
     }
 
-    document.getElementById('news-loading').style.display = 'none';
-    document.getElementById('news-refresh-btn').disabled = false;
-  } catch(e) {
-      document.getElementById('news-content').innerHTML = '<div class="news-empty"><div class="news-empty-big">Could not load news</div><div>' + e.message + '</div></div>';
-    }
-
-    document.getElementById('news-loading').style.display = 'none';
-    document.getElementById('news-refresh-btn').disabled = false;
-  }
-
-  function renderNewsContent() {
-    if (!newsDigest) return;
-    const container = document.getElementById('news-content');
-    const groups = ['Politics', 'Military', 'Technology', 'Economy'];
-    const toShow = activeNewsGroup === 'all' ? groups : [activeNewsGroup];
 
     const generated = newsDigest.generated ? new Date(newsDigest.generated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
     let html = generated ? `<div class="news-last-updated">Last updated at ${generated}</div>` : '';
