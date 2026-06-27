@@ -9,9 +9,8 @@ module.exports = async function handler(req, res) {
   const dateStr = new Date().toISOString().split('T')[0];
   const isoStr = new Date().toISOString();
 
-  async function fetchCategories(categories) {
-    const catList = categories.join(' and ');
-    const prompt = 'Today is ' + today + '. Search for the 3-4 most important China news stories today in these categories: ' + catList + '. For Technology cover semiconductors, space, 5G, quantum, biotech, green energy, nuclear, robotics, cyber - not just AI. Return ONLY raw JSON starting with { ending with }: {"categories":{"' + categories.join('":[],"') + '":[]}} where each item is {"headline":"string","summary":"1-2 sentences","source":"string","url":"string","significance":"High|Medium|Low"}';
+  async function fetchBatch(categories) {
+    const prompt = 'Today is ' + today + '. Search for 3 of the most important China news stories today in EACH of these categories: ' + categories.join(', ') + '. For Technology include semiconductors, space, 5G, quantum, biotech, green energy, nuclear, robotics, cyber. Return ONLY raw JSON starting with { ending with }: {"categories":{"' + categories[0] + '":[{"headline":"string","summary":"1-2 sentences","source":"string","url":"string","significance":"High|Medium|Low"}],"' + categories[1] + '":[{"headline":"string","summary":"string","source":"string","url":"string","significance":"High|Medium|Low"}]}}';
 
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -24,7 +23,7 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 2000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -43,17 +42,16 @@ module.exports = async function handler(req, res) {
 
     let jsonStr = allText.slice(first, last + 1);
     jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
-    return JSON.parse(jsonStr);
+    try { return JSON.parse(jsonStr); } catch(e) { return null; }
   }
 
   try {
-    // Fetch both pairs in parallel to save time
     const [batch1, batch2] = await Promise.all([
-      fetchCategories(['Politics', 'Military']),
-      fetchCategories(['Technology', 'Economy'])
+      fetchBatch(['Politics', 'Military']),
+      fetchBatch(['Technology', 'Economy'])
     ]);
 
-    const combined = {
+    return res.status(200).json({
       date: dateStr,
       generated: isoStr,
       categories: {
@@ -62,9 +60,7 @@ module.exports = async function handler(req, res) {
         Technology: batch2?.categories?.Technology || [],
         Economy:    batch2?.categories?.Economy    || [],
       }
-    };
-
-    return res.status(200).json(combined);
+    });
   } catch(e) {
     return res.status(500).json({ error: e.message });
   }
