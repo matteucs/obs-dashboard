@@ -4,206 +4,261 @@ module.exports = async function handler(req, res) {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-  const CRON_SECRET = process.env.CRON_SECRET;
+  const CRON_SECRET   = process.env.CRON_SECRET;
 
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader !== `Bearer ${CRON_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const auth = req.headers.authorization;
+  if (auth && auth !== `Bearer ${CRON_SECRET}`) return res.status(401).json({ error: 'Unauthorized' });
 
   const briefType = req.query.type || 'daily';
-  const userId = req.query.userId || null;
-  const now = new Date();
+  const userId    = req.query.userId || null;
+  const now       = new Date();
+  const today     = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const dateStr   = now.toISOString().split('T')[0];
+  const briefId   = `${briefType}-${dateStr}`;
 
   const periodLabel = {
-    daily:   now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    daily:   today,
     weekly:  `Week of ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
     monthly: now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-    yearly:  now.getFullYear().toString(),
-  }[briefType] || now.toISOString().split('T')[0];
+    yearly:  String(now.getFullYear()),
+  }[briefType] || dateStr;
 
-  const briefId = `${briefType}-${now.toISOString().split('T')[0]}`;
-  const today = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-  // Load analyst profile
-  let analystProfile = null;
+  // ── Load analyst profile ──────────────────────────────────
+  let profile = null;
   try {
-    const profUrl = userId
+    const url = userId
       ? `${SUPABASE_URL}/rest/v1/analyst_profiles?user_id=eq.${userId}&limit=1`
       : `${SUPABASE_URL}/rest/v1/analyst_profiles?id=eq.default&limit=1`;
-    const profRes = await fetch(profUrl, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    const profRows = await profRes.json();
-    if (profRows?.[0]?.data) analystProfile = profRows[0].data;
+    const r = await fetch(url, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+    const rows = await r.json();
+    if (rows?.[0]?.data) profile = rows[0].data;
   } catch(e) {}
 
-  // Load submissions
-  let analyzed = [], highPriority = [], historicalContext = '';
+  // ── Load submissions ──────────────────────────────────────
+  let analyzed = [], highPri = [], medPri = [];
   try {
-    const subRes = await fetch(`${SUPABASE_URL}/rest/v1/submissions?order=created_at.desc&limit=50`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/submissions?order=created_at.desc&limit=100`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     });
-    const subs = await subRes.json();
-    if (Array.isArray(subs)) {
-      analyzed = subs.filter(s => s.analysis);
-      highPriority = analyzed.filter(s => s.analysis?.priority === 'High');
+    const rows = await r.json();
+    if (Array.isArray(rows)) {
+      analyzed = rows.filter(s => s.analysis);
+      highPri  = analyzed.filter(s => s.analysis?.priority === 'High');
+      medPri   = analyzed.filter(s => s.analysis?.priority === 'Medium');
     }
   } catch(e) {}
 
+  // ── Historical context ────────────────────────────────────
+  let history = '';
   if (briefType !== 'daily') {
     try {
-      const histRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/briefs?type=eq.daily&order=generated_at.desc&limit=5`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-      );
-      const hist = await histRes.json();
-      if (Array.isArray(hist) && hist.length) {
-        historicalContext = hist.map(b =>
-          `[${b.period_label}] Risk:${b.content?.overall_risk} ${(b.content?.overall_assessment||'').slice(0,80)}`
-        ).join(' | ');
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/briefs?type=eq.daily&order=generated_at.desc&limit=7`, {
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+      });
+      const rows = await r.json();
+      if (Array.isArray(rows) && rows.length) {
+        history = rows.slice(0,5).map(b =>
+          `[${b.period_label}] Risk:${b.content?.overall_risk||'?'} — ${(b.content?.overall_assessment||'').slice(0,100)}`
+        ).join('\n');
       }
     } catch(e) {}
   }
 
-  // Parse cached news from frontend if provided
+  // ── Parse news from query param ───────────────────────────
   let newsContext = '';
+  let econNews    = '';
   try {
-    const rawNews = req.query.news;
-    if (rawNews) {
-      const newsData = JSON.parse(decodeURIComponent(rawNews));
-      const cats = newsData.categories || {};
+    if (req.query.news) {
+      const nd = JSON.parse(decodeURIComponent(req.query.news));
+      const cats = nd.categories || {};
       const lines = [];
       for (const [cat, items] of Object.entries(cats)) {
-        if (Array.isArray(items)) {
-          items.slice(0, 4).forEach(item => {
-            lines.push(`[${cat}] ${item.headline}: ${item.summary}`);
-          });
-        }
+        if (!Array.isArray(items)) continue;
+        items.slice(0,5).forEach(item => {
+          lines.push(`[${cat}][${item.source_type||item.source}] ${item.headline}: ${item.summary}`);
+        });
       }
-      if (lines.length) newsContext = lines.join('\n');
+      newsContext = lines.join('\n');
+      econNews = (cats.Economy||[]).slice(0,6).map(i => `${i.headline}: ${i.summary}`).join('\n');
     }
   } catch(e) {}
 
-  const profileContext = analystProfile
-    ? `ANALYST: ${analystProfile.role||''} ${analystProfile.unit||''} ${analystProfile.command||''} AOR:${analystProfile.aor||''} Topics:${(analystProfile.priority_topics||[]).join(',')} Questions:${(analystProfile.key_questions||'').slice(0,150)}`
+  const fmt = s => `[${s.date}][${s.analysis?.priority}][${s.analysis?.category}] ${(s.narrative||'').slice(0,120)}`;
+  const subBlock = analyzed.length
+    ? `HIGH PRIORITY FIELD REPORTS:\n${highPri.slice(0,5).map(fmt).join('\n')}\nMEDIUM PRIORITY:\n${medPri.slice(0,3).map(fmt).join('\n')}`
+    : 'No analyzed field submissions available.';
+
+  const profileBlock = profile
+    ? `ANALYST PROFILE — Tailor this brief accordingly:
+Role: ${profile.role||''} | Unit: ${profile.unit||''} | Command: ${profile.command||''}
+AOR: ${profile.aor||''} | Mission: ${profile.mission_area||''}
+Priority Topics: ${(profile.priority_topics||[]).join(', ')}
+Key Questions: ${(profile.key_questions||'').slice(0,200)}
+Tailoring Notes: ${(profile.tailoring_notes||'').slice(0,200)}`
     : '';
 
-  const subContext = analyzed.length
-    ? 'HIGH: ' + highPriority.slice(0,3).map(s => `[${s.date}] ${s.analysis?.category}: ${(s.narrative||'').slice(0,100)}`).join(' | ')
-    : 'No field submissions.';
-
-  const anthropicHeaders = {
+  const HEADERS = {
     'Content-Type': 'application/json',
     'x-api-key': ANTHROPIC_KEY,
     'anthropic-version': '2023-06-01',
   };
 
-  // CALL 1: Main brief themes
-  const promptThemes = `You are a senior China intelligence analyst. Date: ${today}. Brief type: ${briefType.toUpperCase()}.
-${profileContext ? profileContext + '\n' : ''}
-Search news: Reuters, AP, Bloomberg, FT, SCMP, Nikkei Asia, Defense News. Also search CSIS, Pacific Forum, Hudson Institute, Wilson Center, CRS for recent China analysis.
+  // ── PROMPT 1: Main intelligence brief ────────────────────
+  const p1 = `You are a senior intelligence analyst producing a ${briefType.toUpperCase()} China intelligence brief dated ${today}, focused on informing US Air Force and Department of Defense strategy.
+${profileBlock ? '\n' + profileBlock + '\n' : ''}
+INPUT DATA:
 
-TODAY'S NEWS (from live search - use this as primary source): ${newsContext || 'Not available - use training knowledge.'}
+TODAY'S NEWS DIGEST (from Chinese state media, Western media, and think tanks):
+${newsContext || 'Not available — use training knowledge for current assessments.'}
 
-FIELD SUBMISSIONS: ${subContext}
-${historicalContext ? 'PRIOR BRIEFS: ' + historicalContext : ''}
+FIELD SUBMISSIONS (firsthand observations — use to corroborate or challenge news):
+${subBlock}
+${history ? '\nHISTORICAL BRIEF CONTEXT:\n' + history : ''}
 
-TECHNOLOGY must cover: semiconductors, space, 5G/6G, quantum, biotech, green energy, nuclear, robotics, cyber. NOT just AI.
-${briefType !== 'daily' ? 'Emphasize trends over time.' : ''}
+ANALYTICAL REQUIREMENTS:
+- Frame ALL analysis through the lens of implications for US Air Force and DoD strategy
+- Cover: Economy, Regional Goals & International Politics, Military Growth, Technology Development
+- Technology: Cover BROAD domains — semiconductors, space & counter-space, 5G/6G, quantum, biotech, green energy (solar/EVs/batteries), nuclear, hypersonics, robotics, cyber, dual-use tech. Do NOT focus only on AI.
+- Note where Chinese state media narrative diverges from Western reporting — this is analytically significant
+- Where field submissions corroborate or contradict news, note it explicitly
+- Be direct, specific, and policy-relevant — write for senior military leadership
+${briefType !== 'daily' ? '- Emphasize trajectory, trends, and changes from prior periods' : ''}
 
-Return ONLY raw JSON starting { ending }:
-{"overall_assessment":"3-4 sentence executive summary.","overall_risk":"High|Medium|Low","themes":{"economy":{"tldr":"1 sentence.","analysis":"4-5 sentences on trade, GDP, markets, policy.","trends":[{"label":"trend","text":"detailed explanation","direction":"Rising|Falling|Stable|Uncertain"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"specific value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""},"regional":{"tldr":"1 sentence.","analysis":"4-5 sentences on Taiwan, SCS, BRI, diplomacy.","trends":[{"label":"trend","text":"explanation","direction":"Rising|Falling|Stable|Uncertain"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""},"military":{"tldr":"1 sentence.","analysis":"4-5 sentences on PLA, exercises, weapons, posture.","trends":[{"label":"trend","text":"explanation","direction":"Rising"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""},"technology":{"tldr":"1 sentence.","analysis":"4-5 sentences across multiple tech domains.","trends":[{"label":"trend","text":"explanation","direction":"Rising"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""}},"think_tank_sources":[{"org":"org","title":"title","date":"date","url":"url","key_finding":"finding"}],"source_count":{"submissions":${analyzed.length},"high_priority_submissions":${highPriority.length}}}`;
+Return ONLY raw JSON starting with { and ending with }. No markdown:
+{
+  "executive_assessment": "5-6 sentences synthesizing the most critical developments across all domains and their collective implication for US Air Force and DoD strategy. Be specific about what has changed, what is accelerating, and what requires immediate attention.",
+  "overall_risk": "High|Medium|Low",
+  "key_judgments": [
+    "One sentence analytic judgment #1 — the most important bottom-line assessment",
+    "One sentence analytic judgment #2",
+    "One sentence analytic judgment #3"
+  ],
+  "themes": {
+    "economy": {
+      "tldr": "One sentence bottom line with DoD relevance.",
+      "analysis": "4-5 sentences. Cover trade, economic coercion, defense spending capacity, financial system, sanctions impact, supply chain vulnerabilities relevant to US military.",
+      "dod_implications": "2-3 sentences specifically on what this means for US defense planning, acquisition, or strategy.",
+      "trends": [
+        {"label": "Trend name", "text": "Detailed explanation with evidence.", "direction": "Rising|Falling|Stable|Uncertain"},
+        {"label": "Trend name", "text": "Explanation.", "direction": "Rising|Falling|Stable|Uncertain"}
+      ],
+      "signals": [
+        {"label": "Indicator", "value": "Specific value or status", "desc": "Strategic context"},
+        {"label": "Indicator", "value": "Value", "desc": "Context"}
+      ],
+      "risk": "High|Medium|Low",
+      "field_corroboration": "One sentence if field reports are relevant, else omit."
+    },
+    "regional": {
+      "tldr": "One sentence bottom line.",
+      "analysis": "4-5 sentences on Taiwan Strait, South China Sea, East China Sea, Korean Peninsula, BRI, and China's regional influence operations.",
+      "dod_implications": "2-3 sentences on implications for INDOPACOM posture, allied relationships, basing, or contingency planning.",
+      "trends": [{"label": "...", "text": "...", "direction": "..."}, {"label": "...", "text": "...", "direction": "..."}],
+      "signals": [{"label": "...", "value": "...", "desc": "..."}, {"label": "...", "value": "...", "desc": "..."}],
+      "risk": "High|Medium|Low",
+      "field_corroboration": ""
+    },
+    "military": {
+      "tldr": "One sentence bottom line.",
+      "analysis": "4-5 sentences on PLA modernization, PLAAF/PLAN/PLARF/PLASSF developments, exercises, A2/AD capabilities, nuclear posture, and joint warfighting.",
+      "dod_implications": "2-3 sentences on specific implications for US Air Force operations, basing at Kadena/Andersen/Misawa, or force planning.",
+      "trends": [{"label": "...", "text": "...", "direction": "..."}, {"label": "...", "text": "...", "direction": "..."}],
+      "signals": [{"label": "...", "value": "...", "desc": "..."}, {"label": "...", "value": "...", "desc": "..."}],
+      "risk": "High|Medium|Low",
+      "field_corroboration": ""
+    },
+    "technology": {
+      "tldr": "One sentence bottom line.",
+      "analysis": "4-5 sentences spanning multiple tech domains — semiconductors, space, hypersonics, cyber, quantum, biotech, green energy, nuclear, robotics. Note dual-use military-civilian applications.",
+      "dod_implications": "2-3 sentences on technology competition implications for US military advantage, acquisition priorities, or export control effectiveness.",
+      "trends": [{"label": "...", "text": "...", "direction": "..."}, {"label": "...", "text": "...", "direction": "..."}],
+      "signals": [{"label": "...", "value": "...", "desc": "..."}, {"label": "...", "value": "...", "desc": "..."}],
+      "risk": "High|Medium|Low",
+      "field_corroboration": ""
+    }
+  },
+  "think_tank_highlights": [
+    {"org": "Org name", "title": "Publication title", "key_finding": "One sentence most relevant finding for DoD", "url": "url if available"}
+  ],
+  "source_count": {"submissions": ${analyzed.length}, "high_priority": ${highPri.length}}
+}`;
 
-  // CALL 2: Economic indicators
-  const promptEcon = `You are a China economic analyst. Date: ${today}. Using your training knowledge and any relevant economic data from today's news below, provide the latest China macroeconomic data.
+  // ── PROMPT 2: Economic indicators ────────────────────────
+  const p2 = `You are a China economic analyst supporting US DoD strategy. Date: ${today}.
 
-TODAY'S NEWS CONTEXT: ${newsContext ? newsContext.split('\n').filter(l => l.includes('[Economy]')).join('\n') || 'No economy news available.' : 'Not available.'}
+${econNews ? 'RECENT ECONOMY NEWS:\n' + econNews + '\n' : ''}
 
- and return ONLY raw JSON starting { ending }:
-{"search_date":"${now.toISOString().split('T')[0]}","overview":"3 sentences on China macro condition.","indicators":[{"name":"GDP Growth Rate","value":"latest figure","previous":"prior period","trend":"Rising|Falling|Stable|Uncertain","interpretation":"what it means for China economy"},{"name":"Retail Sales","value":"YoY%","previous":"prior","trend":"Rising|Falling|Stable|Uncertain","interpretation":"consumer demand signal"}],"pmi":{"manufacturing":"NBS and Caixin figures","services":"NBS and Caixin figures","interpretation":"what PMI signals about momentum"},"trade":{"exports":"YoY%","imports":"YoY%","surplus":"$X billion","key_partners":"notable partner developments","interpretation":"trade data signal"},"currency":{"usd_cny":"current rate","trend":"Appreciation|Depreciation|Stable","pboc_action":"recent PBOC moves","interpretation":"currency implications"},"real_estate":{"status":"market status","key_developers":"Evergrande Country Garden status","policy_response":"govt measures","interpretation":"property sector impact"},"inflation":{"cpi":"X%","ppi":"X%","interpretation":"inflation dynamics and deflation risk"},"employment":{"urban_unemployment":"X%","youth_unemployment":"X%","interpretation":"labor market and social stability"},"foreign_investment":{"fdi":"latest figure","trend":"Rising|Falling|Stable","interpretation":"business confidence signal"},"debt":{"local_government":"situation","corporate":"stress indicators","household":"outlook","interpretation":"systemic risk assessment"},"forward_indicators":[{"name":"Electricity Consumption","value":"reading","interpretation":"true activity signal"},{"name":"Freight Volume","value":"reading","interpretation":"supply chain signal"}],"overall_assessment":"High|Medium-High|Medium|Medium-Low|Low","overall_assessment_text":"3 sentences on economic health trajectory and key risks."}
+Using your knowledge of the latest available data, provide a comprehensive China macroeconomic dashboard.
 
-IMPORTANT: Return ONLY the JSON object above. Do not wrap it in another object. Start your response with { and end with }.`;
+Return ONLY raw JSON starting with { and ending with }. No markdown:
+{
+  "search_date": "${dateStr}",
+  "overview": "3-4 sentences on China's current macroeconomic condition, trajectory, and key risks relevant to US economic competition and defense planning.",
+  "dod_relevance": "2 sentences on what the economic picture means for China's defense spending capacity and long-term military modernization.",
+  "indicators": [
+    {"name": "GDP Growth Rate", "value": "latest %", "previous": "prior period", "trend": "Rising|Falling|Stable|Uncertain", "interpretation": "strategic significance"},
+    {"name": "Defense Budget", "value": "latest figure", "previous": "prior year", "trend": "Rising|Falling|Stable|Uncertain", "interpretation": "military capacity implication"},
+    {"name": "Retail Sales", "value": "YoY %", "previous": "prior", "trend": "Rising|Falling|Stable|Uncertain", "interpretation": "domestic demand signal"}
+  ],
+  "pmi": {"manufacturing": "NBS and Caixin figures with dates", "services": "NBS and Caixin figures", "interpretation": "what PMI signals about economic momentum"},
+  "trade": {"exports": "YoY %", "imports": "YoY %", "surplus": "$X billion", "key_partners": "US, EU, ASEAN developments", "interpretation": "trade dependency and coercion leverage"},
+  "currency": {"usd_cny": "current rate", "trend": "Appreciation|Depreciation|Stable", "pboc_action": "recent PBOC moves", "interpretation": "capital flow and financial stability implications"},
+  "real_estate": {"status": "market status", "key_developers": "Evergrande, Country Garden, Vanke status", "policy_response": "govt stabilization measures", "interpretation": "systemic risk and fiscal drag"},
+  "inflation": {"cpi": "X%", "ppi": "X%", "interpretation": "deflation risk and consumer demand weakness"},
+  "employment": {"urban_unemployment": "X%", "youth_unemployment": "X%", "interpretation": "social stability pressure on CCP"},
+  "foreign_investment": {"fdi": "latest figure and trend", "trend": "Rising|Falling|Stable", "interpretation": "business confidence and tech decoupling signal"},
+  "debt": {"local_government": "LGFV situation and scale", "corporate": "stress indicators", "household": "debt and consumption outlook", "interpretation": "systemic risk and fiscal capacity for military spending"},
+  "forward_indicators": [
+    {"name": "Electricity Consumption", "value": "latest reading", "interpretation": "true economic activity signal"},
+    {"name": "Rail Freight Volume", "value": "latest reading", "interpretation": "supply chain and industrial activity"},
+    {"name": "Li Keqiang Index composite", "value": "assessment", "interpretation": "alternative GDP proxy"}
+  ],
+  "overall_assessment": "High|Medium-High|Medium|Medium-Low|Low",
+  "overall_assessment_text": "3-4 sentences on China's economic health trajectory, key risks, and implications for its ability to sustain military modernization at current pace."
+}`;
 
   try {
-    // Run both calls in parallel
-    const [res1, res2] = await Promise.all([
+    const [r1, r2] = await Promise.all([
       fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: anthropicHeaders,
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 4000,
-          messages: [{ role: 'user', content: promptThemes }]
-        })
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 5000, messages: [{ role: 'user', content: p1 }] })
       }),
       fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: anthropicHeaders,
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 2000,
-          messages: [{ role: 'user', content: promptEcon }]
-        })
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2500, messages: [{ role: 'user', content: p2 }] })
       })
     ]);
 
-    const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
+    const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
 
-    function extractJSON(data) {
-      const allText = (data.content || [])
+    function extract(data) {
+      const text = (data.content || [])
         .filter(b => b.type === 'text' && b.text)
-        .map(b => b.text)
-        .join('\n')
-        .replace(/```json|```/g, '')
-        .trim();
-      const first = allText.indexOf('{');
-      const last = allText.lastIndexOf('}');
+        .map(b => b.text).join('\n')
+        .replace(/```json|```/g, '').trim();
+      const first = text.indexOf('{');
+      const last  = text.lastIndexOf('}');
       if (first === -1 || last === -1) return null;
-      let jsonStr = allText.slice(first, last + 1);
-      jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
-      try { return JSON.parse(jsonStr); } catch(e) { return null; }
+      let s = text.slice(first, last + 1);
+      s = s.replace(/,\s*([}\]])/g, '$1');
+      try { return JSON.parse(s); } catch(e) { return null; }
     }
 
-    const themes = extractJSON(data1);
-    const econ = extractJSON(data2);
+    const brief = extract(d1);
+    const econ  = extract(d2);
 
-    if (!themes) throw new Error('Could not parse themes JSON from AI response');
+    if (!brief) throw new Error('Failed to parse main brief JSON');
 
-    const briefContent = { ...themes };
-    if (econ) {
-      // econ might be the full object or nested under a key
-      if (econ.overview || econ.pmi || econ.trade) {
-        briefContent.economic_indicators = econ;
-      } else if (econ.economic_indicators) {
-        briefContent.economic_indicators = econ.economic_indicators;
-      }
-    }
-
-    // Add tailored section if profile exists
-    if (analystProfile) {
-      briefContent.tailored_section = {
-        role_relevance: `Brief tailored for ${analystProfile.role || 'analyst'} at ${analystProfile.unit || analystProfile.command || 'your organization'}.`,
-        priority_topic_highlights: [],
-        recommended_actions: []
-      };
-    }
+    const content = { ...brief };
+    if (econ) content.economic_indicators = econ;
 
     await fetch(`${SUPABASE_URL}/rest/v1/briefs`, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates',
+        apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates',
       },
-      body: JSON.stringify({
-        id: briefId,
-        type: briefType,
-        period_label: periodLabel,
-        generated_at: now.toISOString(),
-        content: briefContent
-      })
+      body: JSON.stringify({ id: briefId, type: briefType, period_label: periodLabel, generated_at: now.toISOString(), content })
     });
 
     return res.status(200).json({ success: true, briefId, type: briefType, period_label: periodLabel });
