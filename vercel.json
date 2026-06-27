@@ -9,6 +9,15 @@
     "api/profile.js":        { "maxDuration": 30 },
     "api/auth.js":           { "maxDuration": 30 }
   },
+  "rewrites": [
+    { "source": "/api/generate-brief", "destination": "/api/generate-brief" },
+    { "source": "/api/fetch-news",     "destination": "/api/fetch-news" },
+    { "source": "/api/fetch-econ",     "destination": "/api/fetch-econ" },
+    { "source": "/api/proxy",          "destination": "/api/proxy" },
+    { "source": "/api/brief-auth",     "destination": "/api/brief-auth" },
+    { "source": "/api/profile",        "destination": "/api/profile" },
+    { "source": "/api/auth",           "destination": "/api/auth" }
+  ],
   "crons": [
     { "path": "/api/generate-brief?type=daily",   "schedule": "0 6 * * *" },
     { "path": "/api/generate-brief?type=weekly",  "schedule": "0 7 * * 1" },
