@@ -1,161 +1,954 @@
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>China Bullpen Brief</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
-  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+:root {
+  --ink:       #0d1117;
+  --ink2:      #3d4450;
+  --ink3:      #6e7787;
+  --rule:      #d0d5dd;
+  --rule2:     #e8eaed;
+  --paper:     #f8f7f4;
+  --paper2:    #ffffff;
+  --red:       #b91c1c;
+  --amber:     #b45309;
+  --green:     #15803d;
+  --blue:      #1d4ed8;
+  --mono:      'IBM Plex Mono', monospace;
+  --serif:     'IBM Plex Serif', Georgia, serif;
+}
 
-  const now     = new Date();
-  const today   = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-  const dateStr = now.toISOString().split('T')[0];
+body { background:var(--paper); color:var(--ink); font-family:var(--mono); font-size:13px; line-height:1.6; min-height:100vh; }
 
-  // Parse body
-  let body = req.body || {};
-  if (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) {} }
-  const briefType = body.type || req.query.type || 'daily';
-  const newsData  = body.news || null;
-  const userId    = body.userId || req.query.userId || null;
+/* ── Masthead ─────────────────────────────────────────────── */
+.masthead {
+  border-bottom: 2px solid var(--ink);
+  padding: 0 32px;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 24px;
+  background: var(--paper2);
+}
+.masthead-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+  padding: 14px 0;
+  border-right: 1px solid var(--rule);
+  padding-right: 24px;
+}
+.masthead-title span { font-style: italic; }
+.masthead-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  font-size: 11px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.masthead-date { font-size: 11px; color: var(--ink3); }
+.masthead-links { display: flex; gap: 2px; align-items: center; }
+.masthead-link {
+  font-size: 11px;
+  text-decoration: none;
+  color: var(--ink2);
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  transition: all .12s;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.masthead-link:hover { border-color: var(--rule); background: var(--paper); }
+.masthead-link.primary { background: var(--ink); color: var(--paper2); }
+.masthead-link.primary:hover { background: var(--ink2); }
 
-  const briefId = `${briefType}-${dateStr}`;
-  const periodLabel = {
-    daily:   today,
-    weekly:  `Week of ${now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}`,
-    monthly: now.toLocaleDateString('en-US',{month:'long',year:'numeric'}),
-    yearly:  String(now.getFullYear()),
-  }[briefType] || dateStr;
+/* ── Nav tabs ─────────────────────────────────────────────── */
+.nav-bar {
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper2);
+  padding: 0 32px;
+  display: flex;
+  gap: 0;
+}
+.nav-tab {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: all .12s;
+  margin-bottom: -1px;
+}
+.nav-tab:hover { color: var(--ink); }
+.nav-tab.active { color: var(--ink); border-bottom-color: var(--ink); }
 
-  // ── Load all data in parallel ─────────────────────────────
-  const [profileRes, subsRes, histRes] = await Promise.allSettled([
-    // Profile
-    fetch(userId
-      ? `${SUPABASE_URL}/rest/v1/analyst_profiles?user_id=eq.${userId}&limit=1`
-      : `${SUPABASE_URL}/rest/v1/analyst_profiles?id=eq.default&limit=1`,
-      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
-    ).then(r => r.json()).catch(() => []),
+/* ── Layout ───────────────────────────────────────────────── */
+.content { max-width: 1100px; margin: 0 auto; padding: 32px 32px; }
 
-    // Submissions
-    fetch(`${SUPABASE_URL}/rest/v1/submissions?order=created_at.desc&limit=50`,
-      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
-    ).then(r => r.json()).catch(() => []),
+/* ── Section header ───────────────────────────────────────── */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+.section-title {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--ink);
+}
+.section-title em { font-style: italic; }
+.section-meta { font-size: 11px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.08em; }
 
-    // History (only for non-daily)
-    briefType !== 'daily'
-      ? fetch(`${SUPABASE_URL}/rest/v1/briefs?type=eq.daily&order=generated_at.desc&limit=5`,
-          { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
-        ).then(r => r.json()).catch(() => [])
-      : Promise.resolve([]),
-  ]);
+/* ── Category pills ───────────────────────────────────────── */
+.category-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 20px; }
+.cat-pill {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 5px 14px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all .12s;
+  border-radius: 1px;
+}
+.cat-pill:hover { border-color: var(--ink2); color: var(--ink); }
+.cat-pill.active { background: var(--ink); color: var(--paper2); border-color: var(--ink); }
 
-  const profile  = profileRes.status  === 'fulfilled' ? profileRes.value?.[0]?.data || null : null;
-  const subsRaw  = subsRes.status     === 'fulfilled' && Array.isArray(subsRes.value) ? subsRes.value : [];
-  const histRaw  = histRes.status     === 'fulfilled' && Array.isArray(histRes.value) ? histRes.value : [];
+/* ── News grid ────────────────────────────────────────────── */
+.news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.news-col { background: var(--paper2); padding: 20px; }
+.news-col-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink3);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule2);
+  display: flex;
+  justify-content: space-between;
+}
+.news-col-cat { font-weight: 500; color: var(--ink2); }
+.news-items { display: flex; flex-direction: column; gap: 14px; }
+.news-item { padding-bottom: 14px; border-bottom: 1px solid var(--rule2); }
+.news-item:last-child { border-bottom: none; padding-bottom: 0; }
+.news-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+.news-headline { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.4; flex: 1; }
+.news-sig { font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 1px; flex-shrink: 0; }
+.sig-high { background: rgba(185,28,28,.08); color: var(--red); }
+.sig-medium { background: rgba(180,83,9,.08); color: var(--amber); }
+.sig-low { background: rgba(21,128,61,.08); color: var(--green); }
+.news-summary { font-size: 12px; color: var(--ink2); line-height: 1.6; margin-bottom: 6px; }
+.news-footer { display: flex; justify-content: space-between; align-items: center; }
+.news-source-badge { font-size: 10px; padding: 2px 6px; border: 1px solid var(--rule); color: var(--ink3); border-radius: 1px; }
+.source-cn { border-color: rgba(185,28,28,.3); color: var(--red); background: rgba(185,28,28,.04); }
+.source-tt { border-color: rgba(29,78,216,.3); color: var(--blue); background: rgba(29,78,216,.04); }
+.news-link { font-size: 11px; color: var(--blue); text-decoration: none; }
+.news-link:hover { text-decoration: underline; }
+.news-empty { text-align: center; padding: 40px; color: var(--ink3); font-size: 12px; grid-column: 1/-1; }
 
-  const analyzed = subsRaw.filter(s => s.analysis);
-  const highPri  = analyzed.filter(s => s.analysis?.priority === 'High');
-  const medPri   = analyzed.filter(s => s.analysis?.priority === 'Medium');
+/* ── Loading ──────────────────────────────────────────────── */
+.loading-box { text-align: center; padding: 48px; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--rule); border-top-color: var(--ink); border-radius: 50%; animation: spin .7s linear infinite; margin-right: 8px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: var(--ink3); font-size: 12px; display: inline; }
+.btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 7px 16px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all .12s;
+  border-radius: 1px;
+}
+.btn:hover { border-color: var(--ink2); color: var(--ink); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: var(--ink); color: var(--paper2); border-color: var(--ink); }
+.btn-primary:hover { background: var(--ink2); }
 
-  const history = histRaw.slice(0,4).map(b =>
-    `[${b.period_label}] Risk:${b.content?.overall_risk||'?'} — ${(b.content?.executive_assessment||b.content?.overall_assessment||'').slice(0,80)}`
-  ).join('\n');
+/* ── Brief ────────────────────────────────────────────────── */
+.brief-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.brief-type-tabs { display: flex; gap: 2px; }
+.brief-type-tab { font-size: 11px; padding: 5px 14px; border: 1px solid var(--rule); background: transparent; color: var(--ink2); cursor: pointer; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; transition: all .12s; }
+.brief-type-tab.active { background: var(--ink); color: var(--paper2); border-color: var(--ink); }
+.brief-history { font-family: var(--mono); font-size: 11px; padding: 6px 10px; border: 1px solid var(--rule); background: var(--paper2); color: var(--ink2); cursor: pointer; max-width: 260px; }
 
-  // ── Build contexts ────────────────────────────────────────
-  const fmt = s => `[${s.date}][${s.analysis?.priority}][${s.analysis?.category}] ${(s.narrative||'').slice(0,100)}`;
-  const subBlock = analyzed.length
-    ? `HIGH PRIORITY:\n${highPri.slice(0,4).map(fmt).join('\n')}\nMEDIUM:\n${medPri.slice(0,3).map(fmt).join('\n')}`
-    : 'No analyzed field submissions.';
+/* Executive assessment */
+.exec-box {
+  background: var(--ink);
+  color: var(--paper2);
+  padding: 24px 28px;
+  margin-bottom: 24px;
+}
+.exec-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,.5); margin-bottom: 10px; }
+.exec-text { font-family: var(--serif); font-size: 16px; font-weight: 300; line-height: 1.7; }
+.exec-meta { display: flex; gap: 20px; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.15); flex-wrap: wrap; }
+.exec-meta-item { font-size: 11px; color: rgba(255,255,255,.5); }
+.exec-meta-item strong { color: rgba(255,255,255,.85); }
+.risk-badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 1px; }
+.risk-high   { background: rgba(185,28,28,.15); color: #fca5a5; }
+.risk-medium { background: rgba(180,83,9,.15); color: #fcd34d; }
+.risk-low    { background: rgba(21,128,61,.15); color: #86efac; }
 
-  const profileBlock = profile ? `
-ANALYST PROFILE: ${profile.role||''} | ${profile.unit||''} | ${profile.command||''}
-AOR: ${profile.aor||''} | Topics: ${(profile.priority_topics||[]).join(', ')}` : '';
+/* Key judgments */
+.judgments { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.judgment { display: flex; gap: 12px; padding: 10px 14px; border-left: 3px solid var(--ink); background: var(--paper2); }
+.judgment-num { font-size: 10px; color: var(--ink3); flex-shrink: 0; padding-top: 2px; }
+.judgment-text { font-size: 13px; color: var(--ink); line-height: 1.5; }
 
-  // Build news context from passed data
-  let newsBlock = '';
-  let econBlock = '';
-  if (newsData?.categories) {
-    const cats = newsData.categories;
-    const lines = [];
-    for (const [cat, items] of Object.entries(cats)) {
-      if (!Array.isArray(items)) continue;
-      items.slice(0,4).forEach(i => {
-        lines.push(`[${cat}][${i.source_type||i.source}] ${i.headline}: ${i.summary}`);
-      });
-    }
-    newsBlock = lines.join('\n');
-    econBlock = (cats.Economy||[]).slice(0,5).map(i => `${i.headline}: ${i.summary}`).join('\n');
-  }
+/* Theme sections */
+.theme-section { margin-bottom: 28px; border: 1px solid var(--rule); background: var(--paper2); }
+.theme-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+}
+.theme-label-row { display: flex; align-items: center; gap: 12px; }
+.theme-cat { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink3); }
+.theme-tldr { font-size: 13px; font-weight: 500; color: var(--ink); }
+.theme-body { padding: 20px; }
+.theme-analysis { font-size: 13px; color: var(--ink2); line-height: 1.7; margin-bottom: 16px; }
+.dod-box {
+  background: rgba(29,78,216,.04);
+  border-left: 3px solid var(--blue);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.6;
+}
+.dod-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--blue); margin-bottom: 4px; }
+.trends-signals { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+.mini-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink3); margin-bottom: 8px; }
+.trend-item { display: flex; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--rule2); font-size: 12px; }
+.trend-item:last-child { border-bottom: none; }
+.trend-dir { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; margin-top: 1px; }
+.dir-rising   { background: var(--red); }
+.dir-falling  { background: var(--green); }
+.dir-stable   { background: var(--blue); }
+.dir-uncertain { background: var(--ink3); }
+.trend-content { flex: 1; }
+.trend-label { font-weight: 500; color: var(--ink); }
+.trend-text { color: var(--ink2); margin-top: 2px; line-height: 1.5; }
+.signal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.signal-item { padding: 8px 10px; border: 1px solid var(--rule2); }
+.signal-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink3); margin-bottom: 3px; }
+.signal-value { font-size: 14px; font-weight: 500; color: var(--ink); font-family: var(--serif); }
+.signal-desc { font-size: 11px; color: var(--ink3); margin-top: 2px; line-height: 1.4; }
+.corroboration { font-size: 12px; color: var(--ink3); font-style: italic; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rule2); }
 
-  const HEADERS = {
-    'Content-Type': 'application/json',
-    'x-api-key': ANTHROPIC_KEY,
-    'anthropic-version': '2023-06-01',
-  };
+/* Economic indicators */
+.econ-box { border: 1px solid var(--rule); background: var(--paper2); margin-bottom: 24px; }
+.econ-header { padding: 14px 20px; border-bottom: 1px solid var(--rule); background: var(--paper); display: flex; justify-content: space-between; align-items: center; }
+.econ-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink2); font-weight: 500; }
+.econ-assessment { display: inline-block; font-size: 11px; padding: 3px 8px; border: 1px solid var(--rule); color: var(--ink2); }
+.econ-body { padding: 20px; }
+.econ-overview { font-family: var(--serif); font-size: 14px; font-weight: 300; line-height: 1.7; color: var(--ink); margin-bottom: 16px; }
+.econ-dod { background: rgba(29,78,216,.04); border-left: 3px solid var(--blue); padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: var(--ink2); line-height: 1.6; }
+.econ-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-bottom: 16px; }
+.kpi-card { padding: 12px 14px; border: 1px solid var(--rule2); }
+.kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink3); margin-bottom: 4px; }
+.kpi-value { font-family: var(--serif); font-size: 18px; font-weight: 300; color: var(--ink); line-height: 1; margin-bottom: 2px; }
+.kpi-prev { font-size: 11px; color: var(--ink3); margin-bottom: 4px; }
+.kpi-trend { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 1px; font-weight: 500; }
+.kpi-interp { font-size: 11px; color: var(--ink3); margin-top: 4px; line-height: 1.4; }
+.econ-section-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.econ-mini { padding: 12px 14px; border: 1px solid var(--rule2); }
+.econ-mini-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink3); margin-bottom: 6px; font-weight: 500; }
+.econ-mini-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+.econ-mini-key { color: var(--ink3); }
+.econ-mini-val { color: var(--ink); font-weight: 500; }
+.econ-interp { font-size: 11px; color: var(--ink2); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--rule2); line-height: 1.5; }
+.econ-bottom { font-family: var(--serif); font-size: 14px; font-weight: 300; color: var(--ink); line-height: 1.7; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule); }
 
-  // ── Prompt 1: Main brief ─────────────────────────────────
-  const p1 = `You are a senior China intelligence analyst. Date: ${today}. ${briefType.toUpperCase()} brief for US Air Force and DoD leadership.
-${profileBlock}
+/* Think tank */
+.thinktank-section { margin-bottom: 24px; }
+.thinktank-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink3); margin-bottom: 10px; }
+.thinktank-list { display: flex; flex-direction: column; gap: 6px; }
+.thinktank-item { display: flex; gap: 10px; padding: 10px 14px; background: var(--paper2); border: 1px solid var(--rule2); align-items: flex-start; }
+.thinktank-org { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; color: var(--blue); background: rgba(29,78,216,.06); border: 1px solid rgba(29,78,216,.2); padding: 2px 8px; flex-shrink: 0; border-radius: 1px; white-space: nowrap; }
+.thinktank-content { flex: 1; min-width: 0; }
+.thinktank-title { font-size: 12px; font-weight: 500; color: var(--ink); margin-bottom: 2px; }
+.thinktank-finding { font-size: 11px; color: var(--ink2); line-height: 1.5; }
+.thinktank-link { font-size: 11px; color: var(--blue); text-decoration: none; margin-top: 3px; display: inline-block; }
 
-TODAY'S NEWS FROM MULTIPLE SOURCES (Chinese state media, Western media, think tanks):
-${newsBlock || 'Use training knowledge for current China developments.'}
+/* Submit form */
+.form-card { background: var(--paper2); border: 1px solid var(--rule); padding: 28px 32px; max-width: 700px; }
+.form-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink3); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--rule2); }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field.full { grid-column: 1/-1; }
+.field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink2); font-weight: 500; }
+.field input, .field textarea {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color .12s;
+  width: 100%;
+}
+.field input:focus, .field textarea:focus { border-color: var(--ink2); }
+.field textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+.required-star { color: var(--red); }
+.field-error { font-size: 11px; color: var(--red); margin-top: 2px; }
+.char-count { font-size: 11px; color: var(--ink3); text-align: right; margin-top: 2px; }
+.submit-row { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px; }
+.submit-note { font-size: 11px; color: var(--ink3); }
+.submit-btn { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 24px; background: var(--ink); color: var(--paper2); border: none; cursor: pointer; transition: background .12s; }
+.submit-btn:hover { background: var(--ink2); }
+.submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+.success-screen { display: none; text-align: center; padding: 48px 24px; }
+.success-mark { font-size: 32px; color: var(--green); margin-bottom: 16px; }
+.success-title { font-family: var(--serif); font-size: 22px; font-weight: 300; color: var(--ink); margin-bottom: 8px; }
+.success-sub { font-size: 13px; color: var(--ink3); margin-bottom: 16px; }
+.success-ref { font-size: 12px; color: var(--ink3); background: var(--paper); padding: 6px 14px; display: inline-block; border: 1px solid var(--rule); margin-bottom: 20px; }
+.new-sub-btn { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 18px; border: 1px solid var(--rule); background: transparent; color: var(--ink2); cursor: pointer; }
+.brief-empty { text-align: center; padding: 60px 20px; }
+.brief-empty-title { font-family: var(--serif); font-size: 22px; font-weight: 300; color: var(--ink3); margin-bottom: 8px; }
+.brief-empty-sub { font-size: 13px; color: var(--ink3); margin-bottom: 20px; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--ink); color: var(--paper2); font-size: 12px; padding: 10px 20px; opacity: 0; transition: all .2s; pointer-events: none; z-index: 99; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-FIELD SUBMISSIONS (firsthand reports):
-${subBlock}
-${history ? '\nPRIOR BRIEFS:\n' + history : ''}
+@media(max-width:700px) {
+  .masthead { padding: 0 16px; flex-wrap: wrap; }
+  .content { padding: 20px 16px; }
+  .news-grid { grid-template-columns: 1fr; }
+  .trends-signals { grid-template-columns: 1fr; }
+  .field-grid { grid-template-columns: 1fr; }
+  .econ-section-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
 
-Write a comprehensive intelligence brief. Frame ALL analysis for US Air Force and DoD strategic planning. Note where Chinese state media narrative diverges from independent reporting. Technology must cover broad domains: semiconductors, space, 5G/6G, quantum, biotech, green/nuclear energy, hypersonics, robotics, cyber — not just AI. ${briefType !== 'daily' ? 'Emphasize trajectory and trend changes.' : ''}
+<!-- Masthead -->
+<header class="masthead">
+  <div class="masthead-title">China Bullpen <span>Brief</span></div>
+  <div class="masthead-meta">
+    <span class="masthead-date" id="masthead-date"></span>
+  </div>
+  <div class="masthead-links">
+    <a href="/brief.html" class="masthead-link primary">Analyst Brief</a>
+    <a href="/analyst.html" class="masthead-link">Analyst Tool</a>
+    <a href="/admin.html" class="masthead-link">Admin</a>
+  </div>
+</header>
 
-Return ONLY raw JSON starting { ending }:
-{"executive_assessment":"5-6 sentence synthesis of most critical developments and implications for US Air Force and DoD strategy. Be specific about what is accelerating, what requires attention, and what has changed.","overall_risk":"High|Medium|Low","key_judgments":["KJ1: most important analytic judgment","KJ2: second judgment","KJ3: third judgment"],"themes":{"economy":{"tldr":"1 sentence with DoD relevance.","analysis":"4-5 sentences: trade patterns, economic coercion, defense spending capacity, supply chain risks, sanctions effects.","dod_implications":"2-3 sentences: implications for US defense acquisition, economic competition, or strategy.","trends":[{"label":"trend name","text":"evidence and significance","direction":"Rising|Falling|Stable|Uncertain"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"specific value","desc":"strategic context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""},"regional":{"tldr":"1 sentence.","analysis":"4-5 sentences: Taiwan Strait, South/East China Sea, Korean Peninsula, BRI, influence operations, diplomatic moves.","dod_implications":"2-3 sentences: INDOPACOM posture, basing, allied relationships, contingency implications.","trends":[{"label":"...","text":"...","direction":"..."},{"label":"...","text":"...","direction":"..."}],"signals":[{"label":"...","value":"...","desc":"..."},{"label":"...","value":"...","desc":"..."}],"risk":"High|Medium|Low","field_corroboration":""},"military":{"tldr":"1 sentence.","analysis":"4-5 sentences: PLA modernization, PLAAF/PLAN/PLARF/PLASSF developments, exercises, A2/AD, nuclear posture, joint warfighting.","dod_implications":"2-3 sentences: implications for USAF operations, Kadena/Andersen/Misawa basing, force planning, deterrence.","trends":[{"label":"...","text":"...","direction":"..."},{"label":"...","text":"...","direction":"..."}],"signals":[{"label":"...","value":"...","desc":"..."},{"label":"...","value":"...","desc":"..."}],"risk":"High|Medium|Low","field_corroboration":""},"technology":{"tldr":"1 sentence.","analysis":"4-5 sentences across multiple domains: semiconductors, space/counter-space, hypersonics, cyber, quantum, biotech, green energy, nuclear, robotics. Note dual-use applications.","dod_implications":"2-3 sentences: technology competition implications for US military advantage, acquisition priorities, export controls.","trends":[{"label":"...","text":"...","direction":"..."},{"label":"...","text":"...","direction":"..."}],"signals":[{"label":"...","value":"...","desc":"..."},{"label":"...","value":"...","desc":"..."}],"risk":"High|Medium|Low","field_corroboration":""}},"think_tank_highlights":[{"org":"org","title":"publication title","key_finding":"most relevant DoD finding","url":"url or null"}],"source_count":{"submissions":${analyzed.length},"high_priority":${highPri.length}}}`;
+<!-- Nav -->
+<nav class="nav-bar">
+  <button class="nav-tab active" id="tab-news"   onclick="switchTab('news')">News Digest</button>
+  <button class="nav-tab"        id="tab-brief"  onclick="switchTab('brief')">Bullpen Daily Brief</button>
+  <button class="nav-tab"        id="tab-submit" onclick="switchTab('submit')">Submit Observation</button>
+</nav>
 
-  // ── Prompt 2: Economic indicators ────────────────────────
-  const p2 = `China economic analyst supporting US DoD. Date: ${today}.
-${econBlock ? 'ECONOMY NEWS:\n' + econBlock + '\n' : ''}
-Return ONLY raw JSON starting { ending }:
-{"search_date":"${dateStr}","overview":"3-4 sentences: China macro condition, trajectory, risks relevant to US economic competition.","dod_relevance":"2 sentences: what economic picture means for China defense spending and military modernization capacity.","indicators":[{"name":"GDP Growth","value":"latest %","previous":"prior period","trend":"Rising|Falling|Stable|Uncertain","interpretation":"strategic significance"},{"name":"Defense Budget","value":"latest","previous":"prior year","trend":"Rising","interpretation":"military capacity"},{"name":"Retail Sales","value":"YoY %","previous":"prior","trend":"Rising|Falling|Stable|Uncertain","interpretation":"domestic demand"}],"pmi":{"manufacturing":"NBS and Caixin figures","services":"NBS and Caixin figures","interpretation":"momentum signal"},"trade":{"exports":"YoY %","imports":"YoY %","surplus":"$X bn","key_partners":"US EU ASEAN developments","interpretation":"dependency and coercion leverage"},"currency":{"usd_cny":"rate","trend":"Appreciation|Depreciation|Stable","pboc_action":"recent moves","interpretation":"financial stability implications"},"real_estate":{"status":"market status","key_developers":"Evergrande Country Garden Vanke","policy_response":"stabilization measures","interpretation":"systemic risk and fiscal drag"},"inflation":{"cpi":"X%","ppi":"X%","interpretation":"deflation risk"},"employment":{"urban_unemployment":"X%","youth_unemployment":"X%","interpretation":"social stability pressure"},"foreign_investment":{"fdi":"figure and trend","trend":"Rising|Falling|Stable","interpretation":"decoupling signal"},"debt":{"local_government":"LGFV situation","corporate":"stress indicators","household":"debt outlook","interpretation":"systemic risk and fiscal capacity"},"forward_indicators":[{"name":"Electricity Consumption","value":"reading","interpretation":"true activity"},{"name":"Rail Freight","value":"reading","interpretation":"industrial activity"}],"overall_assessment":"High|Medium-High|Medium|Medium-Low|Low","overall_assessment_text":"3-4 sentences on economic health and ability to sustain military modernization."}`;
+<div class="content">
+
+  <!-- ── NEWS TAB ──────────────────────────────────────────── -->
+  <div id="view-news">
+    <div class="section-header">
+      <div class="section-title">Daily News <em>Digest</em></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="section-meta" id="news-updated"></span>
+        <button class="btn" id="news-refresh-btn" onclick="refreshNews()">Refresh</button>
+      </div>
+    </div>
+    <div class="category-pills">
+      <button class="cat-pill active" onclick="setNewsCat('All',this)">All</button>
+      <button class="cat-pill" onclick="setNewsCat('Politics',this)">Politics</button>
+      <button class="cat-pill" onclick="setNewsCat('Military',this)">Military</button>
+      <button class="cat-pill" onclick="setNewsCat('Economy',this)">Economy</button>
+      <button class="cat-pill" onclick="setNewsCat('Technology',this)">Technology</button>
+    </div>
+    <div id="news-loading" class="loading-box" style="display:none">
+      <div class="spinner"></div><span class="loading-text">Aggregating news from Chinese and international sources...</span>
+    </div>
+    <div id="news-content"></div>
+  </div>
+
+  <!-- ── BRIEF TAB ─────────────────────────────────────────── -->
+  <div id="view-brief" style="display:none">
+    <div class="section-header">
+      <div class="section-title">Bullpen <em>Daily Brief</em></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="section-meta" id="brief-period"></span>
+        <button class="btn" id="brief-gen-btn" onclick="generateBrief()">Generate now</button>
+        <button class="btn" onclick="exportBrief()">Export</button>
+      </div>
+    </div>
+    <div class="brief-controls">
+      <div class="brief-type-tabs">
+        <button class="brief-type-tab active" id="btype-daily"   onclick="setBriefType('daily',this)">Daily</button>
+        <button class="brief-type-tab"        id="btype-weekly"  onclick="setBriefType('weekly',this)">Weekly</button>
+        <button class="brief-type-tab"        id="btype-monthly" onclick="setBriefType('monthly',this)">Monthly</button>
+        <button class="brief-type-tab"        id="btype-yearly"  onclick="setBriefType('yearly',this)">Yearly</button>
+      </div>
+      <select class="brief-history" id="brief-history-select" onchange="loadBriefById(this.value)">
+        <option value="">Select past brief...</option>
+      </select>
+    </div>
+    <div id="brief-loading" class="loading-box" style="display:none">
+      <div class="spinner"></div><span class="loading-text" id="brief-loading-msg">Generating intelligence brief...</span>
+    </div>
+    <div id="brief-content"></div>
+  </div>
+
+  <!-- ── SUBMIT TAB ────────────────────────────────────────── -->
+  <div id="view-submit" style="display:none">
+    <div class="section-header">
+      <div class="section-title">Submit <em>Observation</em></div>
+      <div class="section-meta">Confidential — reviewed by analysis team</div>
+    </div>
+    <div class="form-card">
+      <form id="obs-form" novalidate onsubmit="handleSubmit(event)">
+        <div style="margin-bottom:20px">
+          <div class="form-section-label">Submitter information</div>
+          <div class="field-grid">
+            <div class="field"><label>Full name <span class="required-star">*</span></label><input type="text" id="f-name" placeholder="Full name"/><div class="field-error" id="err-name"></div></div>
+            <div class="field"><label>Date of observation <span class="required-star">*</span></label><input type="date" id="f-date"/><div class="field-error" id="err-date"></div></div>
+            <div class="field"><label>Email</label><input type="email" id="f-email" placeholder="email@example.com"/></div>
+            <div class="field"><label>Phone</label><input type="tel" id="f-phone" placeholder="+1 555 000 0000"/></div>
+          </div>
+        </div>
+        <div>
+          <div class="form-section-label">Observation details</div>
+          <div class="field-grid">
+            <div class="field full"><label>Observation narrative <span class="required-star">*</span></label><textarea id="f-narrative" maxlength="3000" placeholder="Describe what you observed — what, where, when, who, and any relevant context..." oninput="updateCharCount()"></textarea><div class="char-count" id="char-count">0 / 3000</div><div class="field-error" id="err-narrative"></div></div>
+            <div class="field full"><label>Location / context</label><input type="text" id="f-location" placeholder="e.g. Beijing, South China Sea, specific facility or organization"/></div>
+          </div>
+        </div>
+        <div class="submit-row">
+          <div class="submit-note">Fields marked <span class="required-star">*</span> are required. Contact details are kept confidential.</div>
+          <button type="submit" class="submit-btn" id="submit-btn">Submit observation</button>
+        </div>
+      </form>
+      <div class="success-screen" id="success-screen">
+        <div class="success-mark">&#10003;</div>
+        <div class="success-title">Observation submitted</div>
+        <div class="success-sub">Your report has been received and will be reviewed by the analysis team.</div>
+        <div class="success-ref" id="success-ref"></div>
+        <button class="new-sub-btn" onclick="resetForm()">Submit another</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PROXY_URL       = '/api/proxy';
+const NEWS_CACHE_KEY  = 'cbp_news_v2';
+const BRIEF_CACHE_KEY = 'cbp_brief_v2';
+
+let newsDigest     = null;
+let activeCat      = 'All';
+let activeBriefType = 'daily';
+let allBriefs      = [];
+let currentBrief   = null;
+
+// ── Init ──────────────────────────────────────────────────
+document.getElementById('masthead-date').textContent =
+  new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+initNews();
+
+// ── Tab switching ─────────────────────────────────────────
+function switchTab(tab) {
+  ['news','brief','submit'].forEach(t => {
+    const v = document.getElementById('view-' + t);
+    const b = document.getElementById('tab-' + t);
+    if (v) v.style.display = t === tab ? 'block' : 'none';
+    if (b) b.classList.toggle('active', t === tab);
+  });
+  if (tab === 'brief') initBrief();
+}
+
+// ── News ─────────────────────────────────────────────────
+function setNewsCat(cat, el) {
+  activeCat = cat;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderNews();
+}
+
+async function initNews() {
+  const today = new Date().toISOString().split('T')[0];
+  const cached = JSON.parse(localStorage.getItem(NEWS_CACHE_KEY) || 'null');
+  if (cached && cached.date === today) { newsDigest = cached; renderNews(); return; }
+  await fetchNews();
+}
+
+async function refreshNews() {
+  localStorage.removeItem(NEWS_CACHE_KEY);
+  newsDigest = null;
+  await fetchNews();
+}
+
+async function fetchNews() {
+  const btn = document.getElementById('news-refresh-btn');
+  document.getElementById('news-loading').style.display = 'block';
+  document.getElementById('news-content').innerHTML = '';
+  if (btn) btn.disabled = true;
 
   try {
-    const [r1, r2] = await Promise.all([
-      fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:4000, messages:[{role:'user',content:p1}] })
-      }),
-      fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:2000, messages:[{role:'user',content:p2}] })
-      })
-    ]);
-
-    const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
-
-    function extract(data) {
-      const text = (data.content||[]).filter(b=>b.type==='text'&&b.text).map(b=>b.text).join('\n')
-        .replace(/```json|```/g,'').trim();
-      const first = text.indexOf('{'), last = text.lastIndexOf('}');
-      if (first===-1||last===-1) return null;
-      let s = text.slice(first, last+1).replace(/,\s*([}\]])/g,'$1');
-      try { return JSON.parse(s); } catch(e) { return null; }
-    }
-
-    const brief = extract(d1);
-    const econ  = extract(d2);
-    if (!brief) throw new Error('Failed to parse brief JSON. Response: ' + JSON.stringify(d1.content?.slice(0,1)));
-
-    const content = { ...brief };
-    if (econ) {
-      content.economic_indicators = econ.economic_indicators || econ;
-    }
-
-    await fetch(`${SUPABASE_URL}/rest/v1/briefs`, {
-      method:'POST',
-      headers:{ apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}`, 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates' },
-      body: JSON.stringify({ id:briefId, type:briefType, period_label:periodLabel, generated_at:now.toISOString(), content })
-    });
-
-    return res.status(200).json({ success:true, briefId, type:briefType, period_label:periodLabel });
+    const r = await fetch('/api/fetch-news');
+    if (!r.ok) throw new Error('API error ' + r.status);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    newsDigest = data;
+    newsDigest.date = new Date().toISOString().split('T')[0];
+    localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(newsDigest));
+    renderNews();
   } catch(e) {
-    return res.status(500).json({ error: e.message });
+    document.getElementById('news-content').innerHTML =
+      '<div class="news-empty">Could not load news: ' + e.message + '</div>';
   }
-};
+  document.getElementById('news-loading').style.display = 'none';
+  if (btn) btn.disabled = false;
+}
+
+function renderNews() {
+  const el = document.getElementById('news-content');
+  if (!newsDigest) return;
+
+  const cats = newsDigest.categories || {};
+  const all  = ['Politics','Military','Economy','Technology'];
+  const show = activeCat === 'All' ? all : [activeCat];
+
+  const gen = newsDigest.generated
+    ? new Date(newsDigest.generated).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})
+    : '';
+  document.getElementById('news-updated').textContent = gen ? 'Updated ' + gen : '';
+
+  const CAT_COLORS = {
+    Politics:   { border: '#b91c1c', bg: 'rgba(185,28,28,.04)' },
+    Military:   { border: '#0d1117', bg: 'rgba(13,17,23,.03)' },
+    Economy:    { border: '#15803d', bg: 'rgba(21,128,61,.04)' },
+    Technology: { border: '#1d4ed8', bg: 'rgba(29,78,216,.04)' },
+  };
+
+  let html = '';
+  show.forEach(cat => {
+    const items = cats[cat] || [];
+    const col = CAT_COLORS[cat] || { border: '#6e7787', bg: 'rgba(0,0,0,.02)' };
+
+    html += `<div style="margin-bottom:28px;border-left:3px solid ${col.border};">
+      <div style="background:${col.bg};padding:10px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:0;border-bottom:1px solid var(--rule2)">
+        <span style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2)">${cat}</span>
+        <span style="font-size:11px;color:var(--ink3)">${items.length} item${items.length !== 1 ? 's' : ''}</span>
+      </div>`;
+
+    if (!items.length) {
+      html += `<div style="padding:16px 18px;font-size:12px;color:var(--ink3)">No stories available for this category.</div>`;
+    } else {
+      items.forEach((item, idx) => {
+        const sigClass = item.significance === 'High' ? 'sig-high' : item.significance === 'Low' ? 'sig-low' : 'sig-medium';
+        const srcType  = item.source_type || '';
+        const isCN = srcType.includes('Chinese');
+        const isTT = srcType.includes('Think');
+        const srcClass = isCN ? 'source-cn' : isTT ? 'source-tt' : '';
+        const srcLabel = isCN ? 'Chinese State' : isTT ? 'Think Tank' : srcType.split(' ')[0] || '';
+        const isLast = idx === items.length - 1;
+
+        html += `<div style="padding:14px 18px;${isLast ? '' : 'border-bottom:1px solid var(--rule2);'}display:flex;gap:16px;align-items:flex-start;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;">
+              <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.4;flex:1">${item.headline}</div>
+              <span class="news-sig ${sigClass}" style="flex-shrink:0">${item.significance||'Med'}</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink2);line-height:1.7;margin-bottom:8px;">${item.summary}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <span style="font-size:11px;color:var(--ink3);font-weight:500">${item.source}</span>
+                ${srcLabel ? `<span class="news-source-badge ${srcClass}">${srcLabel}</span>` : ''}
+              </div>
+              ${item.url ? `<a class="news-link" href="${item.url}" target="_blank" rel="noopener">Read article &#8599;</a>` : ''}
+            </div>
+          </div>
+        </div>`;
+      });
+    }
+    html += '</div>';
+  });
+
+  el.innerHTML = html || '<div class="news-empty">No news available</div>';
+}
+
+// ── Brief ─────────────────────────────────────────────────
+function setBriefType(type, el) {
+  activeBriefType = type;
+  document.querySelectorAll('.brief-type-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  loadBriefs(type);
+}
+
+async function initBrief() {
+  document.getElementById('brief-period').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  await loadBriefs(activeBriefType);
+}
+
+async function loadBriefs(type) {
+  const loadEl = document.getElementById('brief-loading');
+  const contentEl = document.getElementById('brief-content');
+  if (loadEl) loadEl.style.display = 'block';
+  if (contentEl) contentEl.innerHTML = '';
+
+  try {
+    const r = await fetch(PROXY_URL + '?action=listBriefs&type=' + type);
+    const data = await r.json();
+    allBriefs = Array.isArray(data) ? data : [];
+  } catch(e) { allBriefs = []; }
+
+  if (loadEl) loadEl.style.display = 'none';
+
+  const sel = document.getElementById('brief-history-select');
+  sel.innerHTML = '<option value="">Select past brief...</option>' +
+    allBriefs.map(b => `<option value="${b.id}">${b.period_label}</option>`).join('');
+
+  if (allBriefs.length && allBriefs[0].content) {
+    currentBrief = allBriefs[0].content;
+    currentBrief._period_label = allBriefs[0].period_label;
+    currentBrief._type = allBriefs[0].type;
+    sel.value = allBriefs[0].id;
+    renderBrief();
+  } else {
+    if (contentEl) contentEl.innerHTML = `<div class="brief-empty">
+      <div class="brief-empty-title">No ${type} brief yet</div>
+      <div class="brief-empty-sub">Click "Generate now" to create today's intelligence brief.</div>
+      <button class="btn btn-primary" onclick="generateBrief()">Generate now</button>
+    </div>`;
+  }
+}
+
+function loadBriefById(id) {
+  if (!id) return;
+  const b = allBriefs.find(x => x.id === id);
+  if (b && b.content) {
+    currentBrief = b.content;
+    currentBrief._period_label = b.period_label;
+    currentBrief._type = b.type;
+    renderBrief();
+  }
+}
+
+async function generateBrief() {
+  const loadEl  = document.getElementById('brief-loading');
+  const msgEl   = document.getElementById('brief-loading-msg');
+  const contentEl = document.getElementById('brief-content');
+  const btn = document.getElementById('brief-gen-btn');
+
+  if (loadEl)  loadEl.style.display = 'block';
+  if (msgEl)   msgEl.textContent = 'Generating ' + activeBriefType + ' brief...';
+  if (contentEl) contentEl.innerHTML = '';
+  if (btn) btn.disabled = true;
+
+  try {
+    // Pass cached news to brief generator
+    const cachedNews = localStorage.getItem(NEWS_CACHE_KEY);
+    let url = '/api/generate-brief?type=' + activeBriefType;
+    if (cachedNews) url += '&news=' + encodeURIComponent(cachedNews.slice(0, 10000));
+
+    const r = await fetch(url);
+    if (!r.ok) {
+      const txt = await r.text();
+      let msg = 'Server error ' + r.status;
+      try { const j = JSON.parse(txt); msg = j.error || msg; } catch(e) {}
+      throw new Error(msg);
+    }
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    if (!data.success) throw new Error('Generation failed');
+    showToast('Brief generated.');
+    await loadBriefs(activeBriefType);
+  } catch(e) {
+    if (contentEl) contentEl.innerHTML = `<div class="brief-empty">
+      <div class="brief-empty-title">Generation failed</div>
+      <div class="brief-empty-sub">${e.message}</div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="generateBrief()">Try again</button>
+    </div>`;
+  }
+  if (loadEl) loadEl.style.display = 'none';
+  if (btn) btn.disabled = false;
+}
+
+function renderBrief() {
+  const b = document.getElementById('brief-content');
+  if (!b || !currentBrief) return;
+  const br = currentBrief;
+
+  const risk = r => r === 'High' ? 'risk-high' : r === 'Medium' ? 'risk-medium' : 'risk-low';
+  const dir  = d => d === 'Rising' ? 'dir-rising' : d === 'Falling' ? 'dir-falling' : d === 'Stable' ? 'dir-stable' : 'dir-uncertain';
+
+  let html = '';
+
+  // Period label
+  if (br._period_label) {
+    html += `<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);border:1px solid var(--rule);padding:3px 10px">${(br._type||activeBriefType).toUpperCase()} BRIEF</span>
+      <span style="font-size:13px;color:var(--ink2)">${br._period_label}</span>
+    </div>`;
+  }
+
+  // Executive assessment
+  if (br.executive_assessment) {
+    html += `<div class="exec-box">
+      <div class="exec-label">Executive Assessment</div>
+      <div class="exec-text">${br.executive_assessment}</div>
+      <div class="exec-meta">
+        <div class="exec-meta-item"><strong>Overall Risk:</strong> <span class="risk-badge ${risk(br.overall_risk)}">${br.overall_risk||'—'}</span></div>
+        <div class="exec-meta-item"><strong>Sources:</strong> ${br.source_count?.submissions||0} field submissions (${br.source_count?.high_priority||0} high priority)</div>
+      </div>
+    </div>`;
+  }
+
+  // Key judgments
+  if (br.key_judgments?.length) {
+    html += '<div class="judgments">';
+    br.key_judgments.forEach((j,i) => {
+      html += `<div class="judgment"><span class="judgment-num">KJ ${String(i+1).padStart(2,'0')}</span><div class="judgment-text">${j}</div></div>`;
+    });
+    html += '</div>';
+  }
+
+  // Themes
+  const themes = [
+    { key:'economy',  label:'Economy',               cat:'Economic Assessment' },
+    { key:'regional', label:'Regional Goals & International Politics', cat:'Geopolitical Assessment' },
+    { key:'military', label:'Military Growth',        cat:'Military Assessment' },
+    { key:'technology', label:'Technology Development', cat:'Technology Assessment' },
+  ];
+
+  themes.forEach(t => {
+    const th = br.themes?.[t.key];
+    if (!th) return;
+    html += `<div class="theme-section">
+      <div class="theme-header">
+        <div class="theme-label-row">
+          <span class="theme-cat">${t.cat}</span>
+          <span class="theme-tldr">${th.tldr||''}</span>
+        </div>
+        <span class="risk-badge ${risk(th.risk)}" style="background:rgba(0,0,0,.06);color:var(--ink2);border:1px solid var(--rule)">${th.risk} Risk</span>
+      </div>
+      <div class="theme-body">
+        <div class="theme-analysis">${th.analysis||''}</div>
+        ${th.dod_implications ? `<div class="dod-box"><div class="dod-label">&#9632; DoD / USAF Implications</div>${th.dod_implications}</div>` : ''}
+        <div class="trends-signals">
+          <div>
+            <div class="mini-section-label">Key Trends</div>
+            ${(th.trends||[]).map(tr => `<div class="trend-item">
+              <div class="trend-dir ${dir(tr.direction)}"></div>
+              <div class="trend-content">
+                <div class="trend-label">${tr.label} &mdash; <span style="font-weight:400;font-size:11px;color:var(--ink3)">${tr.direction}</span></div>
+                <div class="trend-text">${tr.text}</div>
+              </div>
+            </div>`).join('')}
+          </div>
+          <div>
+            <div class="mini-section-label">Key Signals</div>
+            <div class="signal-grid">
+              ${(th.signals||[]).map(s => `<div class="signal-item">
+                <div class="signal-label">${s.label}</div>
+                <div class="signal-value">${s.value}</div>
+                <div class="signal-desc">${s.desc}</div>
+              </div>`).join('')}
+            </div>
+          </div>
+        </div>
+        ${th.field_corroboration ? `<div class="corroboration"><strong>Field corroboration:</strong> ${th.field_corroboration}</div>` : ''}
+      </div>
+    </div>`;
+  });
+
+  // Think tank highlights
+  if (br.think_tank_highlights?.length) {
+    html += `<div class="thinktank-section">
+      <div class="thinktank-label">Think Tank & Policy Research</div>
+      <div class="thinktank-list">
+        ${br.think_tank_highlights.map(t => `<div class="thinktank-item">
+          <span class="thinktank-org">${t.org||'—'}</span>
+          <div class="thinktank-content">
+            <div class="thinktank-title">${t.title||''}</div>
+            <div class="thinktank-finding">${t.key_finding||''}</div>
+            ${t.url ? `<a class="thinktank-link" href="${t.url}" target="_blank">Read &#8599;</a>` : ''}
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Economic indicators
+  const ei = br.economic_indicators;
+  if (ei) {
+    const kTrend = t => t === 'Rising' ? 'background:rgba(185,28,28,.08);color:var(--red)' : t === 'Falling' ? 'background:rgba(21,128,61,.08);color:var(--green)' : 'background:rgba(0,0,0,.05);color:var(--ink2)';
+    html += `<div class="econ-box">
+      <div class="econ-header">
+        <span class="econ-title">Economic Indicators Dashboard${ei.search_date ? ' &mdash; ' + ei.search_date : ''}</span>
+        ${ei.overall_assessment ? `<span class="econ-assessment">${ei.overall_assessment}</span>` : ''}
+      </div>
+      <div class="econ-body">
+        ${ei.overview ? `<div class="econ-overview">${ei.overview}</div>` : ''}
+        ${ei.dod_relevance ? `<div class="econ-dod"><strong>DoD Relevance:</strong> ${ei.dod_relevance}</div>` : ''}
+        ${(ei.indicators||[]).length ? `<div class="econ-kpi-grid">${(ei.indicators||[]).map(i => `<div class="kpi-card">
+          <div class="kpi-label">${i.name}</div>
+          <div class="kpi-value">${i.value||'—'}</div>
+          ${i.previous ? `<div class="kpi-prev">Prev: ${i.previous}</div>` : ''}
+          ${i.trend ? `<div class="kpi-trend" style="${kTrend(i.trend)}">${i.trend}</div>` : ''}
+          ${i.interpretation ? `<div class="kpi-interp">${i.interpretation}</div>` : ''}
+        </div>`).join('')}</div>` : ''}
+        <div class="econ-section-grid">
+          ${ei.pmi ? `<div class="econ-mini"><div class="econ-mini-label">PMI</div><div class="econ-mini-row"><span class="econ-mini-key">Manufacturing</span><span class="econ-mini-val">${ei.pmi.manufacturing||'—'}</span></div><div class="econ-mini-row"><span class="econ-mini-key">Services</span><span class="econ-mini-val">${ei.pmi.services||'—'}</span></div><div class="econ-interp">${ei.pmi.interpretation||''}</div></div>` : ''}
+          ${ei.trade ? `<div class="econ-mini"><div class="econ-mini-label">Trade</div><div class="econ-mini-row"><span class="econ-mini-key">Exports YoY</span><span class="econ-mini-val">${ei.trade.exports||'—'}</span></div><div class="econ-mini-row"><span class="econ-mini-key">Imports YoY</span><span class="econ-mini-val">${ei.trade.imports||'—'}</span></div><div class="econ-mini-row"><span class="econ-mini-key">Surplus</span><span class="econ-mini-val">${ei.trade.surplus||'—'}</span></div><div class="econ-interp">${ei.trade.interpretation||''}</div></div>` : ''}
+          ${ei.currency ? `<div class="econ-mini"><div class="econ-mini-label">Currency</div><div class="econ-mini-row"><span class="econ-mini-key">USD/CNY</span><span class="econ-mini-val">${ei.currency.usd_cny||'—'}</span></div><div class="econ-mini-row"><span class="econ-mini-key">Trend</span><span class="econ-mini-val">${ei.currency.trend||'—'}</span></div>${ei.currency.pboc_action ? `<div class="econ-mini-row"><span class="econ-mini-key">PBOC</span><span class="econ-mini-val" style="font-weight:400;font-size:11px">${ei.currency.pboc_action}</span></div>` : ''}<div class="econ-interp">${ei.currency.interpretation||''}</div></div>` : ''}
+          ${ei.real_estate ? `<div class="econ-mini"><div class="econ-mini-label">Real Estate</div><div class="econ-mini-row"><span class="econ-mini-key">Status</span><span class="econ-mini-val" style="font-size:11px;font-weight:400">${ei.real_estate.status||'—'}</span></div>${ei.real_estate.key_developers ? `<div class="econ-mini-row"><span class="econ-mini-key">Developers</span><span class="econ-mini-val" style="font-size:11px;font-weight:400">${ei.real_estate.key_developers}</span></div>` : ''}<div class="econ-interp">${ei.real_estate.interpretation||''}</div></div>` : ''}
+          ${ei.inflation ? `<div class="econ-mini"><div class="econ-mini-label">Inflation</div><div class="econ-mini-row"><span class="econ-mini-key">CPI</span><span class="econ-mini-val">${ei.inflation.cpi||'—'}</span></div><div class="econ-mini-row"><span class="econ-mini-key">PPI</span><span class="econ-mini-val">${ei.inflation.ppi||'—'}</span></div><div class="econ-interp">${ei.inflation.interpretation||''}</div></div>` : ''}
+          ${ei.employment ? `<div class="econ-mini"><div class="econ-mini-label">Employment</div><div class="econ-mini-row"><span class="econ-mini-key">Urban</span><span class="econ-mini-val">${ei.employment.urban_unemployment||'—'}</span></div><div class="econ-mini-row"><span class="econ-mini-key">Youth</span><span class="econ-mini-val">${ei.employment.youth_unemployment||'—'}</span></div><div class="econ-interp">${ei.employment.interpretation||''}</div></div>` : ''}
+        </div>
+        ${(ei.forward_indicators||[]).length ? `<div style="margin-top:8px"><div class="mini-section-label">Forward &amp; Alternative Indicators</div><div class="signal-grid">${(ei.forward_indicators||[]).map(f => `<div class="signal-item"><div class="signal-label">${f.name}</div><div class="signal-value" style="font-size:14px">${f.value}</div><div class="signal-desc">${f.interpretation}</div></div>`).join('')}</div></div>` : ''}
+        ${ei.overall_assessment_text ? `<div class="econ-bottom">${ei.overall_assessment_text}</div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  b.innerHTML = html;
+}
+
+function exportBrief() {
+  if (!currentBrief) { showToast('No brief to export.'); return; }
+  const br = currentBrief;
+  const lines = [
+    'CHINA BULLPEN INTELLIGENCE BRIEF',
+    '=================================',
+    `Period: ${br._period_label||''}`,
+    `Type: ${(br._type||activeBriefType).toUpperCase()}`,
+    `Overall Risk: ${br.overall_risk||'—'}`,
+    '',
+    'EXECUTIVE ASSESSMENT',
+    br.executive_assessment||'',
+    '',
+    'KEY JUDGMENTS',
+    ...(br.key_judgments||[]).map((j,i) => `KJ${i+1}: ${j}`),
+  ];
+  ['economy','regional','military','technology'].forEach(key => {
+    const t = br.themes?.[key];
+    if (!t) return;
+    lines.push('', key.toUpperCase(), '-'.repeat(key.length));
+    if (t.tldr) lines.push('Bottom line: ' + t.tldr);
+    if (t.analysis) lines.push('', t.analysis);
+    if (t.dod_implications) lines.push('', 'DoD/USAF Implications: ' + t.dod_implications);
+    (t.trends||[]).forEach(tr => lines.push(`  Trend [${tr.direction}]: ${tr.label} — ${tr.text}`));
+    lines.push(`Risk: ${t.risk}`);
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'china_bullpen_brief_' + (br._period_label||'').replace(/[^a-z0-9]/gi,'_').toLowerCase() + '.txt';
+  a.click();
+}
+
+// ── Submit form ───────────────────────────────────────────
+function updateCharCount() {
+  const v = document.getElementById('f-narrative').value;
+  const el = document.getElementById('char-count');
+  if (el) el.textContent = v.length + ' / 3000';
+}
+
+function clearErrors() {
+  document.querySelectorAll('.field-error').forEach(e => e.textContent = '');
+}
+
+async function handleSubmit(e) {
+  e.preventDefault();
+  clearErrors();
+  const name      = (document.getElementById('f-name')?.value||'').trim();
+  const date      = document.getElementById('f-date')?.value||'';
+  const narrative = (document.getElementById('f-narrative')?.value||'').trim();
+  let valid = true;
+  if (!name)              { document.getElementById('err-name').textContent = 'Required'; valid = false; }
+  if (!date)              { document.getElementById('err-date').textContent = 'Required'; valid = false; }
+  if (narrative.length < 20) { document.getElementById('err-narrative').textContent = 'Please provide more detail (at least 20 characters)'; valid = false; }
+  if (!valid) return;
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+
+  const email    = (document.getElementById('f-email')?.value||'').trim();
+  const phone    = (document.getElementById('f-phone')?.value||'').trim();
+  const location = (document.getElementById('f-location')?.value||'').trim();
+  const contact  = [email, phone].filter(Boolean).join(' / ');
+  const id       = Date.now();
+  const ref      = 'OBS-' + id.toString().slice(-8).toUpperCase();
+  const fullNarrative = location ? '[' + location + '] ' + narrative : narrative;
+
+  try {
+    const r = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'save', payload:{ id, date, name, contact, narrative:fullNarrative, analysis:null, similar_group_index:null, folder_id:null, ref_number:ref } })
+    });
+    if (!r.ok) throw new Error('Submission failed');
+    document.getElementById('obs-form').style.display = 'none';
+    document.getElementById('success-screen').style.display = 'block';
+    const refEl = document.getElementById('success-ref');
+    if (refEl) refEl.textContent = 'Reference: ' + ref;
+  } catch(err) {
+    showToast(err.message || 'Submission failed. Please try again.');
+    btn.disabled = false; btn.textContent = 'Submit observation';
+  }
+}
+
+function resetForm() {
+  const form = document.getElementById('obs-form');
+  if (form) form.reset();
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('char-count').textContent = '0 / 3000';
+  clearErrors();
+  document.getElementById('obs-form').style.display = 'block';
+  document.getElementById('success-screen').style.display = 'none';
+  const btn = document.getElementById('submit-btn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Submit observation'; }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
