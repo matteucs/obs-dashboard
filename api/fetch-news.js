@@ -9,9 +9,10 @@ module.exports = async function handler(req, res) {
   const dateStr = new Date().toISOString().split('T')[0];
   const isoStr = new Date().toISOString();
 
-  const prompt = 'Today is ' + today + '. Search for the most important China news today across Politics, Military, Technology, and Economy. For each category find 4-6 significant stories. For Technology cover semiconductors, space, 5G/6G, quantum computing, biotech, green energy, nuclear, robotics, cybersecurity - not just AI. Return ONLY a raw JSON object starting with { and ending with } using this exact structure: {"date":"' + dateStr + '","generated":"' + isoStr + '","categories":{"Politics":[{"headline":"string","summary":"1-2 sentence summary","source":"source name","url":"https://url","significance":"High|Medium|Low"}],"Military":[{"headline":"string","summary":"string","source":"string","url":"string","significance":"High|Medium|Low"}],"Technology":[{"headline":"string","summary":"string","source":"string","url":"string","significance":"High|Medium|Low"}],"Economy":[{"headline":"string","summary":"string","source":"string","url":"string","significance":"High|Medium|Low"}]}}';
+  async function fetchCategories(categories) {
+    const catList = categories.join(' and ');
+    const prompt = 'Today is ' + today + '. Search for the 3-4 most important China news stories today in these categories: ' + catList + '. For Technology cover semiconductors, space, 5G, quantum, biotech, green energy, nuclear, robotics, cyber - not just AI. Return ONLY raw JSON starting with { ending with }: {"categories":{"' + categories.join('":[],"') + '":[]}} where each item is {"headline":"string","summary":"1-2 sentences","source":"string","url":"string","significance":"High|Medium|Low"}';
 
-  try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -22,31 +23,48 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
+        max_tokens: 2000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
     const aiData = await aiRes.json();
-
     const allText = (aiData.content || [])
       .filter(b => b.type === 'text' && b.text)
       .map(b => b.text)
       .join('\n')
-      .trim()
       .replace(/```json|```/g, '')
       .trim();
 
     const first = allText.indexOf('{');
     const last = allText.lastIndexOf('}');
-    if (first === -1 || last === -1) throw new Error('No JSON in response');
+    if (first === -1 || last === -1) return null;
 
     let jsonStr = allText.slice(first, last + 1);
     jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
-    const newsData = JSON.parse(jsonStr);
+    return JSON.parse(jsonStr);
+  }
 
-    return res.status(200).json(newsData);
+  try {
+    // Fetch both pairs in parallel to save time
+    const [batch1, batch2] = await Promise.all([
+      fetchCategories(['Politics', 'Military']),
+      fetchCategories(['Technology', 'Economy'])
+    ]);
+
+    const combined = {
+      date: dateStr,
+      generated: isoStr,
+      categories: {
+        Politics:   batch1?.categories?.Politics   || [],
+        Military:   batch1?.categories?.Military   || [],
+        Technology: batch2?.categories?.Technology || [],
+        Economy:    batch2?.categories?.Economy    || [],
+      }
+    };
+
+    return res.status(200).json(combined);
   } catch(e) {
     return res.status(500).json({ error: e.message });
   }
