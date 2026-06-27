@@ -723,8 +723,6 @@
     document.getElementById('news-date-label').textContent = dateLabel;
 
     try {
-      const msgContent = 'Today is ' + dateLabel + '. Search for the most important China news today across Politics, Military, Technology, and Economy. For Technology cover semiconductors, space, 5G, quantum, biotech, green energy, nuclear, robotics, cybersecurity - not just AI. Return ONLY a raw JSON object. No markdown. No explanation. Start with { end with }. Use this structure: {"date":"TODAY","generated":"NOW","categories":{"Politics":[{"headline":"...","summary":"...","source":"...","url":"...","significance":"High"}],"Military":[{"headline":"...","summary":"...","source":"...","url":"...","significance":"Medium"}],"Technology":[{"headline":"...","summary":"...","source":"...","url":"...","significance":"High"}],"Economy":[{"headline":"...","summary":"...","source":"...","url":"...","significance":"Low"}]}}';
-
       const response = await fetch(PROXY_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -734,7 +732,10 @@
             model: 'claude-sonnet-4-6',
             max_tokens: 4000,
             tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-            messages: [{ role: 'user', content: msgContent }]
+            messages: [{
+              role: 'user',
+              content: 'Today is ' + dateLabel + '. Search for the most important China news today across Politics, Military, Technology, and Economy. For each category find 4-6 significant stories. For Technology cover semiconductors, space, 5G/6G, quantum computing, biotech, green energy, nuclear, robotics, cybersecurity - not just AI. Return ONLY a raw JSON object starting with { and ending with } using this exact structure: {"date":"' + new Date().toISOString().split('T')[0] + '","generated":"' + new Date().toISOString() + '","categories":{"Politics":[{"headline":"string","summary":"1-2 sentence summary","source":"source name","url":"https://url","significance":"High|Medium|Low"}],"Military":[{"headline":"string","summary":"string","source":"string","url":"string","significance":"High|Medium|Low"}],"Technology":[{"headline":"string","summary":"string","source":"string","url":"string","significance":"High|Medium|Low"}],"Economy":[{"headline":"string","summary":"string","source":"string","url":"string","significance":"High|Medium|Low"}]}}'
+            }]
           }
         })
       });
@@ -742,22 +743,24 @@
       if (!response.ok) throw new Error('API error ' + response.status);
       const data = await response.json();
 
-      // Extract JSON from the last text block
-      let jsonText = null;
-      const textBlocks = (data.content || []).filter(b => b.type === 'text' && b.text);
-      for (const block of textBlocks) {
-        const raw = block.text.trim().replace(/```json|```/g, '').trim();
-        const first = raw.indexOf('{');
-        const last = raw.lastIndexOf('}');
-        if (first !== -1 && last > first) {
-          const candidate = raw.slice(first, last + 1);
-          try { JSON.parse(candidate); jsonText = candidate; break; } catch(e) {}
-        }
-      }
+      // Concatenate ALL text blocks - web search returns multiple blocks
+      const allText = (data.content || [])
+        .filter(b => b.type === 'text' && b.text)
+        .map(b => b.text)
+        .join('\n')
+        .trim()
+        .replace(/```json|```/g, '')
+        .trim();
 
-      if (!jsonText) throw new Error('No valid JSON in response');
+      const first = allText.indexOf('{');
+      const last = allText.lastIndexOf('}');
+      if (first === -1 || last === -1) throw new Error('No valid JSON in response');
 
-      newsDigest = JSON.parse(jsonText);
+      let jsonStr = allText.slice(first, last + 1);
+      // Fix trailing commas
+      jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
+
+      newsDigest = JSON.parse(jsonStr);
       newsDigest.date = new Date().toISOString().split('T')[0];
       newsDigest.generated = new Date().toISOString();
       localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(newsDigest));
