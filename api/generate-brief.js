@@ -97,7 +97,9 @@ Return ONLY raw JSON starting { ending }:
 
   // CALL 2: Economic indicators
   const promptEcon = `You are a China economic analyst. Date: ${today}. Search for the latest China macroeconomic data and return ONLY raw JSON starting { ending }:
-{"search_date":"${now.toISOString().split('T')[0]}","overview":"3 sentences on China macro condition.","indicators":[{"name":"GDP Growth Rate","value":"latest figure","previous":"prior period","trend":"Rising|Falling|Stable|Uncertain","interpretation":"what it means for China economy"},{"name":"Retail Sales","value":"YoY%","previous":"prior","trend":"Rising|Falling|Stable|Uncertain","interpretation":"consumer demand signal"}],"pmi":{"manufacturing":"NBS and Caixin figures","services":"NBS and Caixin figures","interpretation":"what PMI signals about momentum"},"trade":{"exports":"YoY%","imports":"YoY%","surplus":"$X billion","key_partners":"notable partner developments","interpretation":"trade data signal"},"currency":{"usd_cny":"current rate","trend":"Appreciation|Depreciation|Stable","pboc_action":"recent PBOC moves","interpretation":"currency implications"},"real_estate":{"status":"market status","key_developers":"Evergrande Country Garden status","policy_response":"govt measures","interpretation":"property sector impact"},"inflation":{"cpi":"X%","ppi":"X%","interpretation":"inflation dynamics and deflation risk"},"employment":{"urban_unemployment":"X%","youth_unemployment":"X%","interpretation":"labor market and social stability"},"foreign_investment":{"fdi":"latest figure","trend":"Rising|Falling|Stable","interpretation":"business confidence signal"},"debt":{"local_government":"situation","corporate":"stress indicators","household":"outlook","interpretation":"systemic risk assessment"},"forward_indicators":[{"name":"Electricity Consumption","value":"reading","interpretation":"true activity signal"},{"name":"Freight Volume","value":"reading","interpretation":"supply chain signal"}],"overall_assessment":"High|Medium-High|Medium|Medium-Low|Low","overall_assessment_text":"3 sentences on economic health trajectory and key risks."}`;
+{"search_date":"${now.toISOString().split('T')[0]}","overview":"3 sentences on China macro condition.","indicators":[{"name":"GDP Growth Rate","value":"latest figure","previous":"prior period","trend":"Rising|Falling|Stable|Uncertain","interpretation":"what it means for China economy"},{"name":"Retail Sales","value":"YoY%","previous":"prior","trend":"Rising|Falling|Stable|Uncertain","interpretation":"consumer demand signal"}],"pmi":{"manufacturing":"NBS and Caixin figures","services":"NBS and Caixin figures","interpretation":"what PMI signals about momentum"},"trade":{"exports":"YoY%","imports":"YoY%","surplus":"$X billion","key_partners":"notable partner developments","interpretation":"trade data signal"},"currency":{"usd_cny":"current rate","trend":"Appreciation|Depreciation|Stable","pboc_action":"recent PBOC moves","interpretation":"currency implications"},"real_estate":{"status":"market status","key_developers":"Evergrande Country Garden status","policy_response":"govt measures","interpretation":"property sector impact"},"inflation":{"cpi":"X%","ppi":"X%","interpretation":"inflation dynamics and deflation risk"},"employment":{"urban_unemployment":"X%","youth_unemployment":"X%","interpretation":"labor market and social stability"},"foreign_investment":{"fdi":"latest figure","trend":"Rising|Falling|Stable","interpretation":"business confidence signal"},"debt":{"local_government":"situation","corporate":"stress indicators","household":"outlook","interpretation":"systemic risk assessment"},"forward_indicators":[{"name":"Electricity Consumption","value":"reading","interpretation":"true activity signal"},{"name":"Freight Volume","value":"reading","interpretation":"supply chain signal"}],"overall_assessment":"High|Medium-High|Medium|Medium-Low|Low","overall_assessment_text":"3 sentences on economic health trajectory and key risks."}
+
+IMPORTANT: Return ONLY the JSON object above. Do not wrap it in another object. Start your response with { and end with }.`;
 
   try {
     // Run both calls in parallel
@@ -147,7 +149,14 @@ Return ONLY raw JSON starting { ending }:
     if (!themes) throw new Error('Could not parse themes JSON from AI response');
 
     const briefContent = { ...themes };
-    if (econ) briefContent.economic_indicators = econ;
+    if (econ) {
+      // econ might be the full object or nested under a key
+      if (econ.overview || econ.pmi || econ.trade) {
+        briefContent.economic_indicators = econ;
+      } else if (econ.economic_indicators) {
+        briefContent.economic_indicators = econ.economic_indicators;
+      }
+    }
 
     // Add tailored section if profile exists
     if (analystProfile) {
