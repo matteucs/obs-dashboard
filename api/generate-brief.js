@@ -49,74 +49,27 @@ module.exports = async function handler(req, res) {
     `[${s.analysis?.category}][${s.date}] ${(s.narrative||'').slice(0,100)}`
   ).join('\n') || 'None';
 
-  const prompt = `You are a senior China intelligence analyst writing a ${briefType.toUpperCase()} brief for US Air Force and DoD senior leadership. Date: ${today}.
+  const prompt = `You are a senior China intelligence analyst writing a ${briefType.toUpperCase()} brief for US Air Force and DoD. Date: ${today}.
 
-NEWS DIGEST (Chinese state media + Western + global + think tanks):
-${newsBlock || 'Use your training knowledge for current China developments.'}
+NEWS (Chinese state media + Western + think tanks):
+${newsBlock || 'Use training knowledge.'}
 
-HIGH PRIORITY FIELD REPORTS:
-${subCtx}
+FIELD REPORTS (high priority): ${subCtx}
 
-Write a comprehensive, detailed intelligence brief. Frame all analysis through the lens of US Air Force and DoD strategic planning. Note where Chinese state media narrative diverges from independent Western reporting — this divergence is itself analytically significant. Technology must cover broad domains: semiconductors, space and counter-space, 5G/6G, quantum computing, hypersonics, biotech, green and nuclear energy, robotics, cyber — not just AI. ${briefType !== 'daily' ? 'Emphasize trends and changes over time.' : ''}
+STRICT LENGTH RULES — follow exactly or the output will be truncated:
+- executive_assessment: exactly 4 sentences
+- each theme analysis: exactly 3 sentences
+- each theme dod_implications: exactly 2 sentences
+- trends: exactly 1 per theme
+- signals: exactly 1 per theme
+- think_tank_highlights: exactly 1 entry
+- All text values must be concise and specific
+
+Technology themes must cover: semiconductors, space, hypersonics, cyber, quantum, biotech, green/nuclear energy, robotics — not just AI.
+${briefType !== 'daily' ? 'Emphasize trends over time.' : ''}
 
 Return ONLY raw JSON starting { ending }:
-{
-  "executive_assessment": "5-6 sentences synthesizing the most critical developments across all domains and their collective implications for US Air Force and DoD strategy. Be specific about what is accelerating, what has changed, and what requires immediate command attention.",
-  "overall_risk": "High|Medium|Low",
-  "key_judgments": [
-    "KJ1: single declarative sentence — most important strategic judgment",
-    "KJ2: second most important judgment",
-    "KJ3: third judgment"
-  ],
-  "themes": {
-    "economy": {
-      "tldr": "One sentence bottom line with DoD relevance.",
-      "analysis": "4-5 sentences covering trade patterns, economic coercion toolkit, defense spending capacity, supply chain vulnerabilities relevant to US military, and sanctions effectiveness.",
-      "dod_implications": "2-3 sentences specifically on what this means for US defense acquisition, economic competition strategy, or allied economic security.",
-      "trends": [
-        {"label": "Trend name", "text": "Detailed explanation with evidence and strategic significance.", "direction": "Rising|Falling|Stable|Uncertain"},
-        {"label": "Second trend", "text": "Explanation with evidence.", "direction": "Rising|Falling|Stable|Uncertain"}
-      ],
-      "signals": [
-        {"label": "Indicator name", "value": "Specific value or status", "desc": "Strategic context for DoD planners"},
-        {"label": "Second indicator", "value": "Value", "desc": "Context"}
-      ],
-      "risk": "High|Medium|Low",
-      "field_corroboration": "One sentence if field reports corroborate or contradict news. Omit if not relevant."
-    },
-    "regional": {
-      "tldr": "One sentence.",
-      "analysis": "4-5 sentences: Taiwan Strait military balance, South China Sea activities, East China Sea tensions, BRI strategic positioning, diplomatic maneuvers, and influence operations.",
-      "dod_implications": "2-3 sentences: INDOPACOM posture, basing implications at Kadena/Andersen/Misawa/Guam, allied relationships, contingency planning.",
-      "trends": [{"label": "...","text": "...","direction": "..."},{"label": "...","text": "...","direction": "..."}],
-      "signals": [{"label": "...","value": "...","desc": "..."},{"label": "...","value": "...","desc": "..."}],
-      "risk": "High|Medium|Low",
-      "field_corroboration": ""
-    },
-    "military": {
-      "tldr": "One sentence.",
-      "analysis": "4-5 sentences: PLA modernization progress, PLAAF/PLAN/PLARF/PLASSF developments, recent exercises and readiness indicators, A2/AD capability advances, nuclear posture, and joint warfighting integration.",
-      "dod_implications": "2-3 sentences: specific implications for USAF operations, fifth-gen survivability, force structure, or deterrence posture.",
-      "trends": [{"label": "...","text": "...","direction": "..."},{"label": "...","text": "...","direction": "..."}],
-      "signals": [{"label": "...","value": "...","desc": "..."},{"label": "...","value": "...","desc": "..."}],
-      "risk": "High|Medium|Low",
-      "field_corroboration": ""
-    },
-    "technology": {
-      "tldr": "One sentence.",
-      "analysis": "4-5 sentences spanning multiple domains — do not focus only on AI. Cover semiconductors and chip manufacturing, space and counter-space, hypersonic weapons, cyber capabilities, quantum computing, biotechnology, green and nuclear energy, robotics, and dual-use military-civilian technology.",
-      "dod_implications": "2-3 sentences: technology competition implications for US military advantage, acquisition priorities, and export control effectiveness.",
-      "trends": [{"label": "...","text": "...","direction": "..."},{"label": "...","text": "...","direction": "..."}],
-      "signals": [{"label": "...","value": "...","desc": "..."},{"label": "...","value": "...","desc": "..."}],
-      "risk": "High|Medium|Low",
-      "field_corroboration": ""
-    }
-  },
-  "think_tank_highlights": [
-    {"org": "Organization", "title": "Publication title", "key_finding": "Most relevant finding for DoD planners", "url": null}
-  ],
-  "source_count": {"submissions": ${analyzed.length}, "high_priority": ${highPri.length}}
-}`;
+{"executive_assessment":"Sentence 1. Sentence 2. Sentence 3. Sentence 4.","overall_risk":"High|Medium|Low","key_judgments":["Most important strategic judgment.","Second judgment.","Third judgment."],"themes":{"economy":{"tldr":"One sentence with DoD relevance.","analysis":"Sentence 1 on trade/coercion. Sentence 2 on defense spending capacity. Sentence 3 on supply chain/sanctions.","dod_implications":"Sentence 1 for DoD planning. Sentence 2 on implications.","trends":[{"label":"Trend name","text":"Explanation with evidence and significance.","direction":"Rising|Falling|Stable|Uncertain"}],"signals":[{"label":"Indicator","value":"Specific value","desc":"Strategic context"}],"risk":"High|Medium|Low","field_corroboration":""},"regional":{"tldr":"One sentence.","analysis":"Sentence 1 on Taiwan/SCS. Sentence 2 on BRI/diplomacy. Sentence 3 on influence operations.","dod_implications":"Sentence 1 INDOPACOM. Sentence 2 basing/allies.","trends":[{"label":"Trend name","text":"Explanation.","direction":"Rising|Falling|Stable|Uncertain"}],"signals":[{"label":"Indicator","value":"Value","desc":"Context"}],"risk":"High|Medium|Low","field_corroboration":""},"military":{"tldr":"One sentence.","analysis":"Sentence 1 on PLA modernization. Sentence 2 on exercises/readiness. Sentence 3 on A2AD/nuclear.","dod_implications":"Sentence 1 for USAF ops. Sentence 2 on deterrence.","trends":[{"label":"Trend name","text":"Explanation.","direction":"Rising|Falling|Stable|Uncertain"}],"signals":[{"label":"Indicator","value":"Value","desc":"Context"}],"risk":"High|Medium|Low","field_corroboration":""},"technology":{"tldr":"One sentence.","analysis":"Sentence 1 on semiconductors/space/hypersonics. Sentence 2 on cyber/quantum/biotech. Sentence 3 on dual-use implications.","dod_implications":"Sentence 1 on US tech advantage. Sentence 2 on acquisition/export controls.","trends":[{"label":"Trend name","text":"Explanation.","direction":"Rising|Falling|Stable|Uncertain"}],"signals":[{"label":"Indicator","value":"Value","desc":"Context"}],"risk":"High|Medium|Low","field_corroboration":""}},"think_tank_highlights":[{"org":"Organization","title":"Publication title","key_finding":"Most relevant finding for DoD.","url":null}],"source_count":{"submissions":${analyzed.length},"high_priority":${highPri.length}}}`;
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
