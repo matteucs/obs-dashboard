@@ -80,17 +80,17 @@ Return ONLY raw JSON, no markdown fences, starting with { and ending with }:
   ],
   "economic_indicators": {
     "search_date": "${now.toISOString().split('T')[0]}",
-    "overview": "2-3 sentence summary of China macro condition.",
-    "indicators": [{"name": "GDP Growth", "value": "latest figure", "previous": "prior period", "trend": "Rising|Falling|Stable|Uncertain", "interpretation": "what it means"}],
-    "pmi": {"manufacturing": "latest NBS/Caixin figure", "services": "latest figure", "interpretation": "what PMI signals"},
-    "trade": {"exports": "YoY %", "imports": "YoY %", "surplus": "figure", "key_partners": "notable partner developments", "interpretation": "what trade data signals"},
-    "currency": {"usd_cny": "current rate", "trend": "Appreciation|Depreciation|Stable", "pboc_action": "recent PBOC moves", "interpretation": "currency implications"},
-    "real_estate": {"status": "market status", "key_developers": "Evergrande/Country Garden status", "policy_response": "govt measures", "interpretation": "property sector impact"},
-    "inflation": {"cpi": "latest CPI", "ppi": "latest PPI", "interpretation": "inflation dynamics"},
-    "employment": {"urban_unemployment": "rate", "youth_unemployment": "rate", "interpretation": "labor market conditions"},
-    "forward_indicators": [{"name": "e.g. Electricity Consumption", "value": "reading", "interpretation": "what it signals"}],
+    "overview": "2-3 sentences on China macro condition.",
+    "indicators": [{"name": "GDP Growth Rate","value": "latest %","previous": "prior period","trend": "Rising|Falling|Stable|Uncertain","interpretation": "1 sentence"}],
+    "pmi": {"manufacturing": "NBS figure","services": "NBS figure","interpretation": "1 sentence"},
+    "trade": {"exports": "YoY %","imports": "YoY %","surplus": "$X billion","key_partners": "key developments","interpretation": "1 sentence"},
+    "currency": {"usd_cny": "X.XX","trend": "Appreciation|Depreciation|Stable","pboc_action": "recent actions","interpretation": "1 sentence"},
+    "real_estate": {"status": "market status","key_developers": "developer health","policy_response": "govt response","interpretation": "1 sentence"},
+    "inflation": {"cpi": "X%","ppi": "X%","interpretation": "1 sentence"},
+    "employment": {"urban_unemployment": "X%","youth_unemployment": "X%","interpretation": "1 sentence"},
+    "forward_indicators": [{"name": "Electricity/Freight","value": "reading","interpretation": "1 sentence"}],
     "overall_assessment": "High|Medium-High|Medium|Medium-Low|Low",
-    "overall_assessment_text": "2-3 sentence bottom line on economic health."
+    "overall_assessment_text": "2-3 sentence economic health bottom line."
   },
   "source_count": {"submissions": ${analyzed ? analyzed.length : 0}, "high_priority_submissions": ${highPriority ? highPriority.length : 0}}
 }`;
@@ -106,7 +106,7 @@ Return ONLY raw JSON, no markdown fences, starting with { and ending with }:
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
+        max_tokens: 6000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content: prompt }]
       })
