@@ -1342,7 +1342,10 @@
     if (refreshBtn) refreshBtn.disabled = true;
 
     try {
-      const res = await fetch('/api/generate-brief?type=' + activeBriefType, { method: 'GET' });
+      // Pass cached news digest to brief generator
+      const cachedNews = localStorage.getItem(NEWS_CACHE_KEY);
+      const newsParam = cachedNews ? '&news=' + encodeURIComponent(cachedNews.slice(0, 8000)) : '';
+      const res = await fetch('/api/generate-brief?type=' + activeBriefType + newsParam, { method: 'GET' });
       if (!res.ok) throw new Error('Server error ' + res.status + ' - brief generation timed out. Try again.');
       const data = await res.json();
       if (data.error) throw new Error(data.error);
