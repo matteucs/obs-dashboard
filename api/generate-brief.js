@@ -4,12 +4,41 @@ module.exports = async function handler(req, res) {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  const CRON_SECRET = process.env.CRON_SECRET;
+
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   const briefType = req.query.type || 'daily';
+  const userId = req.query.userId || null;
   const now = new Date();
-  const briefId = `${briefType}-${now.toISOString().split('T')[0]}`;
 
-  // Load submissions for context
+  const periodLabel = {
+    daily:   now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    weekly:  `Week of ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
+    monthly: now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    yearly:  now.getFullYear().toString(),
+  }[briefType] || now.toISOString().split('T')[0];
+
+  const briefId = `${briefType}-${now.toISOString().split('T')[0]}`;
+  const today = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Load analyst profile
+  let analystProfile = null;
+  try {
+    const profUrl = userId
+      ? `${SUPABASE_URL}/rest/v1/analyst_profiles?user_id=eq.${userId}&limit=1`
+      : `${SUPABASE_URL}/rest/v1/analyst_profiles?id=eq.default&limit=1`;
+    const profRes = await fetch(profUrl, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const profRows = await profRes.json();
+    if (profRows?.[0]?.data) analystProfile = profRows[0].data;
+  } catch(e) {}
+
+  // Load submissions
   let analyzed = [], highPriority = [], historicalContext = '';
   try {
     const subRes = await fetch(`${SUPABASE_URL}/rest/v1/submissions?order=created_at.desc&limit=50`, {
@@ -22,7 +51,6 @@ module.exports = async function handler(req, res) {
     }
   } catch(e) {}
 
-  // Historical context for weekly/monthly/yearly
   if (briefType !== 'daily') {
     try {
       const histRes = await fetch(
@@ -37,149 +65,97 @@ module.exports = async function handler(req, res) {
       }
     } catch(e) {}
   }
-  const periodLabel = {
-    daily:   now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }),
-    weekly:  `Week of ${now.toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })}`,
-    monthly: now.toLocaleDateString('en-US', { month:'long', year:'numeric' }),
-    yearly:  now.getFullYear().toString(),
-  }[briefType] || now.toISOString().split('T')[0];
 
-  const today = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const subContext = analyzed && analyzed.length
-    ? 'HIGH PRIORITY: ' + (highPriority||[]).map(s => '[' + s.date + '] ' + (s.analysis&&s.analysis.category||'') + ': ' + (s.narrative||'').slice(0,120)).join(' | ')
+  const profileContext = analystProfile
+    ? `ANALYST: ${analystProfile.role||''} ${analystProfile.unit||''} ${analystProfile.command||''} AOR:${analystProfile.aor||''} Topics:${(analystProfile.priority_topics||[]).join(',')} Questions:${(analystProfile.key_questions||'').slice(0,150)}`
+    : '';
+
+  const subContext = analyzed.length
+    ? 'HIGH: ' + highPriority.slice(0,3).map(s => `[${s.date}] ${s.analysis?.category}: ${(s.narrative||'').slice(0,100)}`).join(' | ')
     : 'No field submissions.';
 
-  const prompt = `You are a senior China intelligence analyst producing a ${briefType.toUpperCase()} brief dated ${today}.
+  const anthropicHeaders = {
+    'Content-Type': 'application/json',
+    'x-api-key': ANTHROPIC_KEY,
+    'anthropic-version': '2023-06-01',
+    'anthropic-beta': 'web-search-2025-03-05',
+  };
 
-Search for the latest news and analysis across all four themes. Draw on Reuters, AP, Bloomberg, FT, SCMP, Nikkei Asia, Defense News, and think tanks (CSIS, Pacific Forum, Hudson Institute, Wilson Center, CRS). Find 4-6 significant stories per theme.
+  // CALL 1: Main brief themes
+  const promptThemes = `You are a senior China intelligence analyst. Date: ${today}. Brief type: ${briefType.toUpperCase()}.
+${profileContext ? profileContext + '\n' : ''}
+Search news: Reuters, AP, Bloomberg, FT, SCMP, Nikkei Asia, Defense News. Also search CSIS, Pacific Forum, Hudson Institute, Wilson Center, CRS for recent China analysis.
 
-FIELD SUBMISSIONS (corroborating signal - 20% weight): ${subContext}
-${historicalContext ? 'PRIOR BRIEFS CONTEXT: ' + historicalContext : ''}
+FIELD SUBMISSIONS: ${subContext}
+${historicalContext ? 'PRIOR BRIEFS: ' + historicalContext : ''}
 
-TECHNOLOGY: Cover semiconductors, space & aerospace, 5G/6G, quantum computing, biotech, green energy (solar/EVs/batteries), nuclear, robotics, cybersecurity. NOT just AI.
+TECHNOLOGY must cover: semiconductors, space, 5G/6G, quantum, biotech, green energy, nuclear, robotics, cyber. NOT just AI.
+${briefType !== 'daily' ? 'Emphasize trends over time.' : ''}
 
-ECONOMIC INDICATORS: Search for latest China macro data — GDP growth, NBS/Caixin PMI (manufacturing and services), export/import figures, USD/CNY rate, CPI, PPI, urban and youth unemployment, property market (Evergrande, Country Garden, home prices), PBOC actions, and alternative indicators like electricity consumption or freight volumes.
+Return ONLY raw JSON starting { ending }:
+{"overall_assessment":"3-4 sentence executive summary.","overall_risk":"High|Medium|Low","themes":{"economy":{"tldr":"1 sentence.","analysis":"4-5 sentences on trade, GDP, markets, policy.","trends":[{"label":"trend","text":"detailed explanation","direction":"Rising|Falling|Stable|Uncertain"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"specific value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""},"regional":{"tldr":"1 sentence.","analysis":"4-5 sentences on Taiwan, SCS, BRI, diplomacy.","trends":[{"label":"trend","text":"explanation","direction":"Rising|Falling|Stable|Uncertain"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""},"military":{"tldr":"1 sentence.","analysis":"4-5 sentences on PLA, exercises, weapons, posture.","trends":[{"label":"trend","text":"explanation","direction":"Rising"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""},"technology":{"tldr":"1 sentence.","analysis":"4-5 sentences across multiple tech domains.","trends":[{"label":"trend","text":"explanation","direction":"Rising"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""}},"think_tank_sources":[{"org":"org","title":"title","date":"date","url":"url","key_finding":"finding"}],"source_count":{"submissions":${analyzed.length},"high_priority_submissions":${highPriority.length}}}`;
 
-${briefType !== 'daily' ? 'Emphasize trends and changes over time.' : 'Focus on today and this week.'}
-
-Return ONLY raw JSON, no markdown fences, starting with { and ending with }:
-{
-  "overall_assessment": "3-4 sentence executive summary of the most significant developments.",
-  "overall_risk": "High|Medium|Low",
-  "themes": {
-    "economy": {
-      "tldr": "One sentence bottom line.",
-      "analysis": "3-4 sentences covering trade, GDP signals, financial markets, economic policy.",
-      "trends": [
-        {"label": "Trend name", "text": "What this trend means and why it matters.", "direction": "Rising|Falling|Stable|Uncertain"}
-      ],
-      "signals": [
-        {"label": "Indicator name", "value": "Specific value or status", "desc": "Brief context"}
-      ],
-      "risk": "High|Medium|Low",
-      "field_corroboration": "One sentence if field reports corroborate or contradict. Omit if none."
-    },
-    "regional": {
-      "tldr": "One sentence bottom line.",
-      "analysis": "3-4 sentences on Taiwan, South China Sea, BRI, diplomacy, regional influence.",
-      "trends": [{"label": "...", "text": "...", "direction": "..."}],
-      "signals": [{"label": "...", "value": "...", "desc": "..."}],
-      "risk": "High|Medium|Low",
-      "field_corroboration": ""
-    },
-    "military": {
-      "tldr": "One sentence bottom line.",
-      "analysis": "3-4 sentences on PLA modernization, exercises, weapons programs, posture.",
-      "trends": [{"label": "...", "text": "...", "direction": "..."}],
-      "signals": [{"label": "...", "value": "...", "desc": "..."}],
-      "risk": "High|Medium|Low",
-      "field_corroboration": ""
-    },
-    "technology": {
-      "tldr": "One sentence bottom line.",
-      "analysis": "3-4 sentences across multiple tech domains - not just AI.",
-      "trends": [{"label": "...", "text": "...", "direction": "..."}],
-      "signals": [{"label": "...", "value": "...", "desc": "..."}],
-      "risk": "High|Medium|Low",
-      "field_corroboration": ""
-    }
-  },
-  "think_tank_sources": [
-    {"org": "CSIS or other", "title": "Publication title", "date": "Date", "url": "URL", "key_finding": "One sentence finding"}
-  ],
-  "economic_indicators": {
-    "search_date": "${now.toISOString().split('T')[0]}",
-    "overview": "2-3 sentences on China macro condition.",
-    "indicators": [{"name": "GDP Growth Rate","value": "latest %","previous": "prior period","trend": "Rising|Falling|Stable|Uncertain","interpretation": "1 sentence"}],
-    "pmi": {"manufacturing": "NBS figure","services": "NBS figure","interpretation": "1 sentence"},
-    "trade": {"exports": "YoY %","imports": "YoY %","surplus": "$X billion","key_partners": "key developments","interpretation": "1 sentence"},
-    "currency": {"usd_cny": "X.XX","trend": "Appreciation|Depreciation|Stable","pboc_action": "recent actions","interpretation": "1 sentence"},
-    "real_estate": {"status": "market status","key_developers": "developer health","policy_response": "govt response","interpretation": "1 sentence"},
-    "inflation": {"cpi": "X%","ppi": "X%","interpretation": "1 sentence"},
-    "employment": {"urban_unemployment": "X%","youth_unemployment": "X%","interpretation": "1 sentence"},
-    "forward_indicators": [{"name": "Electricity/Freight","value": "reading","interpretation": "1 sentence"}],
-    "overall_assessment": "High|Medium-High|Medium|Medium-Low|Low",
-    "overall_assessment_text": "2-3 sentence economic health bottom line."
-  },
-  "source_count": {"submissions": ${analyzed ? analyzed.length : 0}, "high_priority_submissions": ${highPriority ? highPriority.length : 0}}
-}`;
+  // CALL 2: Economic indicators
+  const promptEcon = `You are a China economic analyst. Date: ${today}. Search for the latest China macroeconomic data and return ONLY raw JSON starting { ending }:
+{"search_date":"${now.toISOString().split('T')[0]}","overview":"3 sentences on China macro condition.","indicators":[{"name":"GDP Growth Rate","value":"latest figure","previous":"prior period","trend":"Rising|Falling|Stable|Uncertain","interpretation":"what it means for China economy"},{"name":"Retail Sales","value":"YoY%","previous":"prior","trend":"Rising|Falling|Stable|Uncertain","interpretation":"consumer demand signal"}],"pmi":{"manufacturing":"NBS and Caixin figures","services":"NBS and Caixin figures","interpretation":"what PMI signals about momentum"},"trade":{"exports":"YoY%","imports":"YoY%","surplus":"$X billion","key_partners":"notable partner developments","interpretation":"trade data signal"},"currency":{"usd_cny":"current rate","trend":"Appreciation|Depreciation|Stable","pboc_action":"recent PBOC moves","interpretation":"currency implications"},"real_estate":{"status":"market status","key_developers":"Evergrande Country Garden status","policy_response":"govt measures","interpretation":"property sector impact"},"inflation":{"cpi":"X%","ppi":"X%","interpretation":"inflation dynamics and deflation risk"},"employment":{"urban_unemployment":"X%","youth_unemployment":"X%","interpretation":"labor market and social stability"},"foreign_investment":{"fdi":"latest figure","trend":"Rising|Falling|Stable","interpretation":"business confidence signal"},"debt":{"local_government":"situation","corporate":"stress indicators","household":"outlook","interpretation":"systemic risk assessment"},"forward_indicators":[{"name":"Electricity Consumption","value":"reading","interpretation":"true activity signal"},{"name":"Freight Volume","value":"reading","interpretation":"supply chain signal"}],"overall_assessment":"High|Medium-High|Medium|Medium-Low|Low","overall_assessment_text":"3 sentences on economic health trajectory and key risks."}`;
 
   try {
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 6000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{ role: 'user', content: prompt }]
+    // Run both calls in parallel
+    const [res1, res2] = await Promise.all([
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: anthropicHeaders,
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 6 }],
+          messages: [{ role: 'user', content: promptThemes }]
+        })
+      }),
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: anthropicHeaders,
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
+          messages: [{ role: 'user', content: promptEcon }]
+        })
       })
-    });
+    ]);
 
-    const aiData = await aiRes.json();
+    const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
 
-    // Web search returns multiple blocks - collect all text blocks
-    const allText = (aiData.content || [])
-      .filter(b => b.type === 'text' && b.text)
-      .map(b => b.text)
-      .join('\n')
-      .trim()
-      .replace(/```json|```/g, '')
-      .trim();
+    function extractJSON(data) {
+      const allText = (data.content || [])
+        .filter(b => b.type === 'text' && b.text)
+        .map(b => b.text)
+        .join('\n')
+        .replace(/```json|```/g, '')
+        .trim();
+      const first = allText.indexOf('{');
+      const last = allText.lastIndexOf('}');
+      if (first === -1 || last === -1) return null;
+      let jsonStr = allText.slice(first, last + 1);
+      jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
+      try { return JSON.parse(jsonStr); } catch(e) { return null; }
+    }
 
-    const first = allText.indexOf('{');
-    const last = allText.lastIndexOf('}');
-    if (first === -1 || last === -1) throw new Error('No JSON: ' + allText.slice(0,200));
+    const themes = extractJSON(data1);
+    const econ = extractJSON(data2);
 
-    let jsonStr = allText.slice(first, last + 1);
+    if (!themes) throw new Error('Could not parse themes JSON from AI response');
 
-    // Fix common Claude JSON issues
-    // 1. Remove trailing commas before } or ]
-    jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
-    // 2. Fix unescaped quotes inside strings (basic fix)
-    // 3. Truncate at last valid closing brace if parse fails
-    let briefContent;
-    try {
-      briefContent = JSON.parse(jsonStr);
-    } catch(e1) {
-      // Try progressively shorter strings until valid
-      let validJson = null;
-      for (let i = jsonStr.length - 1; i > 0; i--) {
-        if (jsonStr[i] === '}') {
-          try {
-            const candidate = jsonStr.slice(0, i + 1);
-            validJson = JSON.parse(candidate);
-            break;
-          } catch(e2) { continue; }
-        }
-      }
-      if (!validJson) throw new Error('Invalid JSON: ' + e1.message);
-      briefContent = validJson;
+    const briefContent = { ...themes };
+    if (econ) briefContent.economic_indicators = econ;
+
+    // Add tailored section if profile exists
+    if (analystProfile) {
+      briefContent.tailored_section = {
+        role_relevance: `Brief tailored for ${analystProfile.role || 'analyst'} at ${analystProfile.unit || analystProfile.command || 'your organization'}.`,
+        priority_topic_highlights: [],
+        recommended_actions: []
+      };
     }
 
     await fetch(`${SUPABASE_URL}/rest/v1/briefs`, {
@@ -190,11 +166,17 @@ Return ONLY raw JSON, no markdown fences, starting with { and ending with }:
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates',
       },
-      body: JSON.stringify({ id: briefId, type: briefType, period_label: periodLabel, generated_at: now.toISOString(), content: briefContent })
+      body: JSON.stringify({
+        id: briefId,
+        type: briefType,
+        period_label: periodLabel,
+        generated_at: now.toISOString(),
+        content: briefContent
+      })
     });
 
     return res.status(200).json({ success: true, briefId, type: briefType, period_label: periodLabel });
   } catch(e) {
-    return res.status(500).json({ error: e.message, stack: e.stack?.slice(0,500) });
+    return res.status(500).json({ error: e.message });
   }
 };
