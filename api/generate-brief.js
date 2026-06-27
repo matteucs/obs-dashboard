@@ -66,6 +66,25 @@ module.exports = async function handler(req, res) {
     } catch(e) {}
   }
 
+  // Parse cached news from frontend if provided
+  let newsContext = '';
+  try {
+    const rawNews = req.query.news;
+    if (rawNews) {
+      const newsData = JSON.parse(decodeURIComponent(rawNews));
+      const cats = newsData.categories || {};
+      const lines = [];
+      for (const [cat, items] of Object.entries(cats)) {
+        if (Array.isArray(items)) {
+          items.slice(0, 4).forEach(item => {
+            lines.push(`[${cat}] ${item.headline}: ${item.summary}`);
+          });
+        }
+      }
+      if (lines.length) newsContext = lines.join('\n');
+    }
+  } catch(e) {}
+
   const profileContext = analystProfile
     ? `ANALYST: ${analystProfile.role||''} ${analystProfile.unit||''} ${analystProfile.command||''} AOR:${analystProfile.aor||''} Topics:${(analystProfile.priority_topics||[]).join(',')} Questions:${(analystProfile.key_questions||'').slice(0,150)}`
     : '';
@@ -85,6 +104,8 @@ module.exports = async function handler(req, res) {
 ${profileContext ? profileContext + '\n' : ''}
 Search news: Reuters, AP, Bloomberg, FT, SCMP, Nikkei Asia, Defense News. Also search CSIS, Pacific Forum, Hudson Institute, Wilson Center, CRS for recent China analysis.
 
+TODAY'S NEWS (from live search - use this as primary source): ${newsContext || 'Not available - use training knowledge.'}
+
 FIELD SUBMISSIONS: ${subContext}
 ${historicalContext ? 'PRIOR BRIEFS: ' + historicalContext : ''}
 
@@ -95,7 +116,11 @@ Return ONLY raw JSON starting { ending }:
 {"overall_assessment":"3-4 sentence executive summary.","overall_risk":"High|Medium|Low","themes":{"economy":{"tldr":"1 sentence.","analysis":"4-5 sentences on trade, GDP, markets, policy.","trends":[{"label":"trend","text":"detailed explanation","direction":"Rising|Falling|Stable|Uncertain"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"specific value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""},"regional":{"tldr":"1 sentence.","analysis":"4-5 sentences on Taiwan, SCS, BRI, diplomacy.","trends":[{"label":"trend","text":"explanation","direction":"Rising|Falling|Stable|Uncertain"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""},"military":{"tldr":"1 sentence.","analysis":"4-5 sentences on PLA, exercises, weapons, posture.","trends":[{"label":"trend","text":"explanation","direction":"Rising"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""},"technology":{"tldr":"1 sentence.","analysis":"4-5 sentences across multiple tech domains.","trends":[{"label":"trend","text":"explanation","direction":"Rising"},{"label":"trend2","text":"explanation","direction":"Stable"}],"signals":[{"label":"indicator","value":"value","desc":"context"},{"label":"indicator2","value":"value","desc":"context"}],"risk":"High|Medium|Low","field_corroboration":""}},"think_tank_sources":[{"org":"org","title":"title","date":"date","url":"url","key_finding":"finding"}],"source_count":{"submissions":${analyzed.length},"high_priority_submissions":${highPriority.length}}}`;
 
   // CALL 2: Economic indicators
-  const promptEcon = `You are a China economic analyst. Date: ${today}. Search for the latest China macroeconomic data and return ONLY raw JSON starting { ending }:
+  const promptEcon = `You are a China economic analyst. Date: ${today}. Using your training knowledge and any relevant economic data from today's news below, provide the latest China macroeconomic data.
+
+TODAY'S NEWS CONTEXT: ${newsContext ? newsContext.split('\n').filter(l => l.includes('[Economy]')).join('\n') || 'No economy news available.' : 'Not available.'}
+
+ and return ONLY raw JSON starting { ending }:
 {"search_date":"${now.toISOString().split('T')[0]}","overview":"3 sentences on China macro condition.","indicators":[{"name":"GDP Growth Rate","value":"latest figure","previous":"prior period","trend":"Rising|Falling|Stable|Uncertain","interpretation":"what it means for China economy"},{"name":"Retail Sales","value":"YoY%","previous":"prior","trend":"Rising|Falling|Stable|Uncertain","interpretation":"consumer demand signal"}],"pmi":{"manufacturing":"NBS and Caixin figures","services":"NBS and Caixin figures","interpretation":"what PMI signals about momentum"},"trade":{"exports":"YoY%","imports":"YoY%","surplus":"$X billion","key_partners":"notable partner developments","interpretation":"trade data signal"},"currency":{"usd_cny":"current rate","trend":"Appreciation|Depreciation|Stable","pboc_action":"recent PBOC moves","interpretation":"currency implications"},"real_estate":{"status":"market status","key_developers":"Evergrande Country Garden status","policy_response":"govt measures","interpretation":"property sector impact"},"inflation":{"cpi":"X%","ppi":"X%","interpretation":"inflation dynamics and deflation risk"},"employment":{"urban_unemployment":"X%","youth_unemployment":"X%","interpretation":"labor market and social stability"},"foreign_investment":{"fdi":"latest figure","trend":"Rising|Falling|Stable","interpretation":"business confidence signal"},"debt":{"local_government":"situation","corporate":"stress indicators","household":"outlook","interpretation":"systemic risk assessment"},"forward_indicators":[{"name":"Electricity Consumption","value":"reading","interpretation":"true activity signal"},{"name":"Freight Volume","value":"reading","interpretation":"supply chain signal"}],"overall_assessment":"High|Medium-High|Medium|Medium-Low|Low","overall_assessment_text":"3 sentences on economic health trajectory and key risks."}
 
 IMPORTANT: Return ONLY the JSON object above. Do not wrap it in another object. Start your response with { and end with }.`;
