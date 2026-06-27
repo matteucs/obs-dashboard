@@ -1795,43 +1795,13 @@ Only include groups with 2 or more submissions. If no meaningful similarities ex
     document.getElementById('news-date-label').textContent = dateLabel;
 
     try {
-      const msgContent = 'Today is ' + dateLabel + '. Search for the most important China news today across Politics, Military, Technology, and Economy. For Technology cover semiconductors, space, 5G, quantum, biotech, green energy, nuclear, robotics, cybersecurity - not just AI. Return ONLY a raw JSON object. No markdown. No explanation. Start with { end with }. Use this structure: {"date":"TODAY","generated":"NOW","categories":{"Politics":[{"headline":"...","summary":"...","source":"...","url":"...","significance":"High"}],"Military":[{"headline":"...","summary":"...","source":"...","url":"...","significance":"Medium"}],"Technology":[{"headline":"...","summary":"...","source":"...","url":"...","significance":"High"}],"Economy":[{"headline":"...","summary":"...","source":"...","url":"...","significance":"Low"}]}}';
-
-      const response = await fetch(PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'analyze',
-          payload: {
-            model: 'claude-sonnet-4-6',
-            max_tokens: 4000,
-            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-            messages: [{ role: 'user', content: msgContent }]
-          }
-        })
-      });
-
+      const response = await fetch('/api/fetch-news', { method: 'GET' });
       if (!response.ok) throw new Error('API error ' + response.status);
       const data = await response.json();
+      if (data.error) throw new Error(data.error);
 
-      // Extract JSON from the last text block
-      let jsonText = null;
-      const textBlocks = (data.content || []).filter(b => b.type === 'text' && b.text);
-      for (const block of textBlocks) {
-        const raw = block.text.trim().replace(/```json|```/g, '').trim();
-        const first = raw.indexOf('{');
-        const last = raw.lastIndexOf('}');
-        if (first !== -1 && last > first) {
-          const candidate = raw.slice(first, last + 1);
-          try { JSON.parse(candidate); jsonText = candidate; break; } catch(e) {}
-        }
-      }
-
-      if (!jsonText) throw new Error('No valid JSON in response');
-
-      newsDigest = JSON.parse(jsonText);
+      newsDigest = data;
       newsDigest.date = new Date().toISOString().split('T')[0];
-      newsDigest.generated = new Date().toISOString();
       localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(newsDigest));
       renderNewsContent();
 
