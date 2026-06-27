@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>China Economic Dashboard — Bullpen Brief</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0d1117;--ink2:#3d4450;--ink3:#6e7787;
+  --rule:#d0d5dd;--rule2:#e8eaed;
+  --paper:#f8f7f4;--paper2:#fff;
+  --red:#b91c1c;--amber:#b45309;--green:#15803d;--blue:#1d4ed8;
+  --mono:'IBM Plex Mono',monospace;--serif:'IBM Plex Serif',Georgia,serif;
+}
+body{background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:13px;line-height:1.6;min-height:100vh;}
+.masthead{border-bottom:2px solid var(--ink);padding:0 32px;display:flex;align-items:stretch;justify-content:space-between;gap:24px;background:var(--paper2);}
+.masthead-title{font-family:var(--serif);font-size:22px;font-weight:300;color:var(--ink);padding:14px 0;border-right:1px solid var(--rule);padding-right:24px;}
+.masthead-title em{font-style:italic;}
+.masthead-links{display:flex;gap:2px;align-items:center;}
+.masthead-link{font-size:11px;text-decoration:none;color:var(--ink2);padding:6px 12px;border:1px solid transparent;transition:all .12s;text-transform:uppercase;letter-spacing:0.06em;}
+.masthead-link:hover{border-color:var(--rule);background:var(--paper);}
+.masthead-link.primary{background:var(--ink);color:var(--paper2);}
+.content{max-width:1100px;margin:0 auto;padding:32px;}
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:14px;border-bottom:1px solid var(--rule);}
+.page-title{font-family:var(--serif);font-size:28px;font-weight:300;color:var(--ink);}
+.page-title em{font-style:italic;}
+.page-date{font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+.btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:7px 16px;border:1px solid var(--rule);background:transparent;color:var(--ink2);cursor:pointer;transition:all .12s;}
+.btn:hover{border-color:var(--ink2);color:var(--ink);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-primary{background:var(--ink);color:var(--paper2);border-color:var(--ink);}
+.btn-primary:hover{background:var(--ink2);}
+.loading-box{text-align:center;padding:60px;}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--rule);border-top-color:var(--ink);border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{color:var(--ink3);font-size:12px;}
+
+/* Overview */
+.overview-box{background:var(--ink);color:var(--paper2);padding:24px 28px;margin-bottom:24px;}
+.overview-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.5);margin-bottom:10px;}
+.overview-text{font-family:var(--serif);font-size:16px;font-weight:300;line-height:1.7;margin-bottom:14px;}
+.overview-dod{font-size:12px;color:rgba(255,255,255,.65);line-height:1.6;padding-top:14px;border-top:1px solid rgba(255,255,255,.15);}
+.overview-dod-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.35);margin-bottom:4px;}
+.assessment-badge{display:inline-block;font-size:11px;padding:4px 12px;border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.8);margin-top:14px;}
+
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:24px;}
+.kpi-card{background:var(--paper2);padding:16px 18px;}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:6px;}
+.kpi-value{font-family:var(--serif);font-size:22px;font-weight:300;color:var(--ink);line-height:1;margin-bottom:4px;}
+.kpi-prev{font-size:11px;color:var(--ink3);margin-bottom:6px;}
+.kpi-trend{display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;}
+.trend-up{background:rgba(185,28,28,.08);color:var(--red);}
+.trend-dn{background:rgba(21,128,61,.08);color:var(--green);}
+.trend-st{background:rgba(0,0,0,.05);color:var(--ink2);}
+.trend-un{background:rgba(110,119,135,.1);color:var(--ink3);}
+.kpi-interp{font-size:11px;color:var(--ink3);margin-top:6px;line-height:1.4;}
+
+/* Section grid */
+.section-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;}
+.data-card{background:var(--paper2);border:1px solid var(--rule);padding:18px 20px;}
+.data-card-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--rule2);}
+.data-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--rule2);}
+.data-row:last-of-type{border-bottom:none;}
+.data-key{font-size:12px;color:var(--ink3);}
+.data-val{font-size:12px;font-weight:500;color:var(--ink);text-align:right;max-width:55%;}
+.data-interp{font-size:11px;color:var(--ink2);line-height:1.5;margin-top:10px;padding-top:8px;border-top:1px solid var(--rule2);}
+
+/* Forward indicators */
+.forward-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;}
+.forward-card{background:var(--paper2);border:1px solid var(--rule);padding:16px 18px;border-left:3px solid var(--blue);}
+.forward-name{font-size:11px;font-weight:500;color:var(--ink2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.forward-val{font-family:var(--serif);font-size:18px;font-weight:300;color:var(--ink);margin-bottom:4px;}
+.forward-interp{font-size:11px;color:var(--ink3);line-height:1.4;}
+
+/* Bottom line */
+.bottom-line{background:var(--paper2);border:1px solid var(--rule);border-left:3px solid var(--green);padding:20px 24px;margin-bottom:24px;}
+.bottom-line-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:8px;}
+.bottom-line-text{font-family:var(--serif);font-size:15px;font-weight:300;line-height:1.7;color:var(--ink);}
+
+.error-box{text-align:center;padding:48px;color:var(--ink3);}
+.error-title{font-family:var(--serif);font-size:20px;font-weight:300;color:var(--ink);margin-bottom:8px;}
+.error-sub{font-size:12px;margin-bottom:20px;}
+
+@media(max-width:700px){
+  .masthead{padding:0 16px;}.content{padding:20px 16px;}
+  .section-grid,.forward-grid{grid-template-columns:1fr;}
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-title">China Bullpen <em>Brief</em></div>
+  <div class="masthead-links">
+    <a href="/index.html" class="masthead-link">News &amp; Brief</a>
+    <a href="/brief.html" class="masthead-link">Analyst Brief</a>
+    <a href="/analyst.html" class="masthead-link">Analyst Tool</a>
+  </div>
+</header>
+
+<div class="content">
+  <div class="page-header">
+    <div>
+      <div class="page-title">China Economic <em>Dashboard</em></div>
+      <div class="page-date" id="page-date"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="refresh-btn" onclick="loadEcon()">Refresh</button>
+      <button class="btn" id="export-btn" onclick="exportData()">Export</button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading-box">
+    <div class="spinner"></div>
+    <span class="loading-text">Compiling China macroeconomic data...</span>
+  </div>
+
+  <div id="econ-content" style="display:none"></div>
+</div>
+
+<script>
+const CACHE_KEY = 'cbp_econ_v1';
+let econData = null;
+
+document.getElementById('page-date').textContent =
+  new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+async function loadEcon(forceRefresh) {
+  const today = new Date().toISOString().split('T')[0];
+  const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+  if (!forceRefresh && cached && cached.date === today) {
+    econData = cached;
+    renderEcon();
+    return;
+  }
+
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('econ-content').style.display = 'none';
+  document.getElementById('refresh-btn').disabled = true;
+
+  try {
+    const r = await fetch('/api/fetch-econ');
+    if (!r.ok) throw new Error('API error ' + r.status);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    econData = data;
+    econData.date = today;
+    localStorage.setItem(CACHE_KEY, JSON.stringify(econData));
+    renderEcon();
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('econ-content').style.display = 'block';
+    document.getElementById('econ-content').innerHTML = `<div class="error-box">
+      <div class="error-title">Could not load economic data</div>
+      <div class="error-sub">${e.message}</div>
+      <button class="btn btn-primary" onclick="loadEcon(true)">Try again</button>
+    </div>`;
+  }
+  document.getElementById('refresh-btn').disabled = false;
+}
+
+function trendClass(t) {
+  return t === 'Rising' ? 'trend-up' : t === 'Falling' ? 'trend-dn' : t === 'Stable' ? 'trend-st' : 'trend-un';
+}
+
+function renderEcon() {
+  const d = econData;
+  if (!d) return;
+
+  let html = '';
+
+  // Overview
+  html += `<div class="overview-box">
+    <div class="overview-label">Macroeconomic Overview</div>
+    <div class="overview-text">${d.overview || ''}</div>
+    ${d.dod_relevance ? `<div class="overview-dod"><div class="overview-dod-label">&#9632; DoD Relevance</div>${d.dod_relevance}</div>` : ''}
+    ${d.overall_assessment ? `<div class="assessment-badge">Economic Health: ${d.overall_assessment}</div>` : ''}
+  </div>`;
+
+  // KPI cards
+  if (d.indicators?.length) {
+    html += '<div class="kpi-grid">';
+    d.indicators.forEach(ind => {
+      html += `<div class="kpi-card">
+        <div class="kpi-label">${ind.name}</div>
+        <div class="kpi-value">${ind.value || '—'}</div>
+        ${ind.previous ? `<div class="kpi-prev">Prev: ${ind.previous}</div>` : ''}
+        ${ind.trend ? `<span class="kpi-trend ${trendClass(ind.trend)}">${ind.trend}</span>` : ''}
+        ${ind.interpretation ? `<div class="kpi-interp">${ind.interpretation}</div>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Main data sections
+  html += '<div class="section-grid">';
+
+  if (d.pmi) {
+    html += `<div class="data-card">
+      <div class="data-card-title">Purchasing Managers Index</div>
+      <div class="data-row"><span class="data-key">Manufacturing</span><span class="data-val">${d.pmi.manufacturing||'—'}</span></div>
+      <div class="data-row"><span class="data-key">Services</span><span class="data-val">${d.pmi.services||'—'}</span></div>
+      <div class="data-interp">${d.pmi.interpretation||''}</div>
+    </div>`;
+  }
+
+  if (d.trade) {
+    html += `<div class="data-card">
+      <div class="data-card-title">Trade Balance</div>
+      <div class="data-row"><span class="data-key">Exports YoY</span><span class="data-val">${d.trade.exports||'—'}</span></div>
+      <div class="data-row"><span class="data-key">Imports YoY</span><span class="data-val">${d.trade.imports||'—'}</span></div>
+      <div class="data-row"><span class="data-key">Trade Surplus</span><span class="data-val">${d.trade.surplus||'—'}</span></div>
+      ${d.trade.key_partners ? `<div class="data-row"><span class="data-key">Key Partners</span><span class="data-val" style="font-size:11px;font-weight:400">${d.trade.key_partners}</span></div>` : ''}
+      <div class="data-interp">${d.trade.interpretation||''}</div>
+    </div>`;
+  }
+
+  if (d.currency) {
+    html += `<div class="data-card">
+      <div class="data-card-title">Currency &amp; PBOC</div>
+      <div class="data-row"><span class="data-key">USD / CNY</span><span class="data-val">${d.currency.usd_cny||'—'}</span></div>
+      <div class="data-row"><span class="data-key">Trend</span><span class="data-val">${d.currency.trend||'—'}</span></div>
+      ${d.currency.pboc_action ? `<div class="data-row"><span class="data-key">PBOC Action</span><span class="data-val" style="font-size:11px;font-weight:400">${d.currency.pboc_action}</span></div>` : ''}
+      <div class="data-interp">${d.currency.interpretation||''}</div>
+    </div>`;
+  }
+
+  if (d.inflation) {
+    html += `<div class="data-card">
+      <div class="data-card-title">Inflation</div>
+      <div class="data-row"><span class="data-key">CPI</span><span class="data-val">${d.inflation.cpi||'—'}</span></div>
+      <div class="data-row"><span class="data-key">PPI</span><span class="data-val">${d.inflation.ppi||'—'}</span></div>
+      <div class="data-interp">${d.inflation.interpretation||''}</div>
+    </div>`;
+  }
+
+  if (d.employment) {
+    html += `<div class="data-card">
+      <div class="data-card-title">Employment</div>
+      <div class="data-row"><span class="data-key">Urban Unemployment</span><span class="data-val">${d.employment.urban_unemployment||'—'}</span></div>
+      <div class="data-row"><span class="data-key">Youth Unemployment</span><span class="data-val">${d.employment.youth_unemployment||'—'}</span></div>
+      <div class="data-interp">${d.employment.interpretation||''}</div>
+    </div>`;
+  }
+
+  if (d.real_estate) {
+    html += `<div class="data-card">
+      <div class="data-card-title">Real Estate Sector</div>
+      <div class="data-row"><span class="data-key">Status</span><span class="data-val" style="font-size:11px;font-weight:400">${d.real_estate.status||'—'}</span></div>
+      ${d.real_estate.key_developers ? `<div class="data-row"><span class="data-key">Key Developers</span><span class="data-val" style="font-size:11px;font-weight:400">${d.real_estate.key_developers}</span></div>` : ''}
+      ${d.real_estate.policy_response ? `<div class="data-row"><span class="data-key">Policy Response</span><span class="data-val" style="font-size:11px;font-weight:400">${d.real_estate.policy_response}</span></div>` : ''}
+      <div class="data-interp">${d.real_estate.interpretation||''}</div>
+    </div>`;
+  }
+
+  if (d.foreign_investment) {
+    html += `<div class="data-card">
+      <div class="data-card-title">Foreign Direct Investment</div>
+      <div class="data-row"><span class="data-key">FDI</span><span class="data-val">${d.foreign_investment.fdi||'—'}</span></div>
+      <div class="data-row"><span class="data-key">Trend</span><span class="data-val">${d.foreign_investment.trend||'—'}</span></div>
+      <div class="data-interp">${d.foreign_investment.interpretation||''}</div>
+    </div>`;
+  }
+
+  if (d.debt) {
+    html += `<div class="data-card">
+      <div class="data-card-title">Debt &amp; Systemic Risk</div>
+      ${d.debt.local_government ? `<div class="data-row"><span class="data-key">Local Govt (LGFV)</span><span class="data-val" style="font-size:11px;font-weight:400">${d.debt.local_government}</span></div>` : ''}
+      ${d.debt.corporate ? `<div class="data-row"><span class="data-key">Corporate</span><span class="data-val" style="font-size:11px;font-weight:400">${d.debt.corporate}</span></div>` : ''}
+      ${d.debt.household ? `<div class="data-row"><span class="data-key">Household</span><span class="data-val" style="font-size:11px;font-weight:400">${d.debt.household}</span></div>` : ''}
+      <div class="data-interp">${d.debt.interpretation||''}</div>
+    </div>`;
+  }
+
+  html += '</div>';
+
+  // Forward indicators
+  if (d.forward_indicators?.length) {
+    html += `<div style="margin-bottom:24px">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:10px;">Alternative &amp; Forward Indicators</div>
+      <div class="forward-grid">`;
+    d.forward_indicators.forEach(f => {
+      html += `<div class="forward-card">
+        <div class="forward-name">${f.name}</div>
+        <div class="forward-val">${f.value || '—'}</div>
+        <div class="forward-interp">${f.interpretation || ''}</div>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // Bottom line
+  if (d.overall_assessment_text) {
+    html += `<div class="bottom-line">
+      <div class="bottom-line-label">&#9632; Strategic Bottom Line</div>
+      <div class="bottom-line-text">${d.overall_assessment_text}</div>
+    </div>`;
+  }
+
+  const content = document.getElementById('econ-content');
+  content.innerHTML = html;
+  content.style.display = 'block';
+  document.getElementById('loading').style.display = 'none';
+}
+
+function exportData() {
+  if (!econData) return;
+  const d = econData;
+  const lines = [
+    'CHINA ECONOMIC DASHBOARD',
+    '========================',
+    `Date: ${d.date || ''}  Generated: ${d.generated ? new Date(d.generated).toLocaleString() : ''}`,
+    `Economic Health: ${d.overall_assessment || '—'}`,
+    '',
+    'OVERVIEW',
+    d.overview || '',
+    '',
+    'DOD RELEVANCE',
+    d.dod_relevance || '',
+    '',
+    'KEY INDICATORS',
+    ...(d.indicators||[]).map(i => `  ${i.name}: ${i.value} (${i.trend}) — ${i.interpretation}`),
+    '',
+    'PMI',
+    `  Manufacturing: ${d.pmi?.manufacturing||'—'}`,
+    `  Services: ${d.pmi?.services||'—'}`,
+    `  ${d.pmi?.interpretation||''}`,
+    '',
+    'TRADE',
+    `  Exports YoY: ${d.trade?.exports||'—'}  Imports YoY: ${d.trade?.imports||'—'}  Surplus: ${d.trade?.surplus||'—'}`,
+    `  ${d.trade?.interpretation||''}`,
+    '',
+    'BOTTOM LINE',
+    d.overall_assessment_text || '',
+  ];
+  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `china_econ_dashboard_${d.date||'export'}.txt`;
+  a.click();
+}
+
+loadEcon();
+</script>
+</body>
+</html>
